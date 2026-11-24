@@ -135,6 +135,15 @@
   .tab { cursor: pointer; border: 0; border-radius: 10px; padding: 8px 18px; font: inherit; font-weight: 700; color: #cbd5e1; background: #1e293b; }
   .tab.on { background: #6d28d9; color: #fff; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; text-align: right; margin-bottom: 14px; }
+  #pick { background: rgba(8,12,22,.92); }
+  .pickRow { margin: 10px 0 4px; font-weight: 800; }
+  .pickGrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 12px; }
+  @media (max-width: 640px) { .pickGrid { grid-template-columns: repeat(3, 1fr); } }
+  .pv { cursor: pointer; color: #fff; font: inherit; background: rgba(255,255,255,.06); border: 2px solid rgba(255,255,255,.14); border-radius: 14px; padding: 10px 4px 8px; }
+  .pv:hover { background: rgba(255,255,255,.14); }
+  .pv.on { border-color: #a855f7; background: rgba(168,85,247,.28); box-shadow: 0 0 12px rgba(168,85,247,.5); }
+  .pv svg { display: block; width: 100%; height: 48px; margin-bottom: 4px; }
+  .pv b { display: block; font-size: 16px; } .pv small { opacity: .6; }
   .item { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 12px; }
   .item.eq { border-color: #22c55e; box-shadow: 0 0 0 1px #22c55e inset; }
   .item .nm { font-weight: 900; font-size: 18px; display: flex; align-items: center; gap: 8px; }
@@ -190,6 +199,7 @@
     <div id="worlds"></div>
     <div class="bal">💰 <b id="menuPts">0</b> נקודות</div>
     <div class="keys">
+      🚦 לפני כל שלב בוחרים כלי רכב: מכונית · משאית · טנק · אוטובוס · קולנועית · ג'יפ<br>
       <kbd>↑</kbd>/<kbd>W</kbd> גז &nbsp; <kbd>↓</kbd>/<kbd>S</kbd> בלם &nbsp; <kbd>←</kbd><kbd>→</kbd> היגוי<br>
       <kbd>Space</kbd> טיל קדימה · <kbd>B</kbd> מוקש אחורה · <kbd>C</kbd> מצלמה · <kbd>G</kbd> / קליק: הפעלת תותח אוטומטי (Apex) – לחיצה אחת ויורה כל המשחק<br>
       ⚡ לייזרים · 🕳️ בורות · ✅ נקודות ביקורת – נפילה לא מאפסת את השלב<br>
@@ -229,6 +239,14 @@
   <button class="btn ghost" id="restartBtn">↻ התחל שלב מחדש</button><br>
   <button class="btn ghost musicBtn">🎵 מוזיקה: פועלת</button>
   <button class="btn ghost" id="quitBtn">💾 שמור וצא לתפריט</button></div></div>
+
+<!-- בחירת כלי רכב לפני כל שלב -->
+<div id="pick" class="overlay hidden"><div class="card wide">
+  <h2>🚦 בחר כלי רכב</h2><p class="sub" id="pickSub"></p>
+  <div id="pickRows"></div>
+  <button class="btn green" id="pickGo">🏁 התחל</button>
+  <button class="btn ghost" id="pickBack">↩ חזרה</button>
+</div></div>
 
 <div id="err" class="hidden">לא הצלחתי לטעון את Three.js 😕<br>צריך חיבור לאינטרנט (הספרייה נטענת מ-CDN).</div>
 <script>
@@ -316,6 +334,17 @@ const WINGS = [
   { id: 'falcon', name: 'Falcon F-9',  price: 11000, color: 0x0f172a, glow: 0xfacc15, sink: -3.6, thrust: 22, steer: 1.3, fly: 1.8, desc: 'מטוס קרב מתקפל – טס הכי רחוק ומהר' },
   { id: 'stealth', name: 'Stealth X',  price: 20000, color: 0x18181b, glow: 0xa855f7, sink: -3.0, thrust: 30, steer: 1.42, fly: 2.0, desc: 'מטוס חמקן עם מבערים כפולים' },
 ];
+// 🚗 סוגי כלי הרכב במרוץ: השחקן בוחר לפני כל שלב, וכל יריב מקבל סוג קבוע משלו
+const BODIES = [
+  { id: 'car', name: "מכונית", icon: '<svg viewBox="0 0 64 36" fill="currentColor" stroke="currentColor" stroke-width="0"><path d="M3 27h58v-6l-9-2-8-8H22l-9 8-10 2z"/><circle cx="16" cy="27" r="5" fill="#111827" stroke-width="2"/><circle cx="48" cy="27" r="5" fill="#111827" stroke-width="2"/></svg>' },
+  { id: 'truck', name: "משאית", icon: '<svg viewBox="0 0 64 36" fill="currentColor" stroke="currentColor" stroke-width="0"><rect x="3" y="6" width="37" height="19"/><path d="M42 12h11l8 8v6H42z"/><circle cx="12" cy="28" r="5" fill="#111827" stroke-width="2"/><circle cx="28" cy="28" r="5" fill="#111827" stroke-width="2"/><circle cx="51" cy="28" r="5" fill="#111827" stroke-width="2"/></svg>' },
+  { id: 'tank', name: "טנק", icon: '<svg viewBox="0 0 64 36" fill="currentColor" stroke="currentColor" stroke-width="0"><rect x="5" y="22" width="52" height="11" rx="5.5"/><rect x="9" y="16" width="44" height="7"/><rect x="20" y="7" width="20" height="10" rx="3"/><rect x="39" y="10" width="23" height="3"/></svg>' },
+  { id: 'bus', name: "אוטובוס", icon: '<svg viewBox="0 0 64 36" fill="currentColor" stroke="currentColor" stroke-width="0"><rect x="3" y="5" width="58" height="22" rx="4"/><g fill="#111827"><rect x="7" y="9" width="9" height="7"/><rect x="18" y="9" width="9" height="7"/><rect x="29" y="9" width="9" height="7"/><rect x="40" y="9" width="9" height="7"/><rect x="51" y="9" width="7" height="12"/></g><circle cx="15" cy="28" r="5" fill="#111827" stroke-width="2"/><circle cx="48" cy="28" r="5" fill="#111827" stroke-width="2"/></svg>' },
+  { id: 'scooter', name: "קולנועית", icon: '<svg viewBox="0 0 64 36" fill="currentColor" stroke="currentColor" stroke-width="0"><rect x="11" y="24" width="42" height="3"/><rect x="13" y="14" width="13" height="3"/><rect x="11" y="5" width="3" height="11"/><rect x="18" y="17" width="3" height="7"/><path d="M45 25l-4-17h3l4 17z"/><rect x="36" y="6" width="10" height="2.5"/><rect x="46" y="15" width="8" height="6"/><circle cx="14" cy="29" r="4" fill="#111827" stroke-width="2"/><circle cx="50" cy="29" r="4" fill="#111827" stroke-width="2"/></svg>' },
+  { id: 'jeep', name: "ג'יפ", icon: '<svg viewBox="0 0 64 36" fill="currentColor" stroke="currentColor" stroke-width="0"><path d="M5 26V17h31l3-9h3l-2 9h19v9z"/><path d="M12 17V6h20v11" fill="none" stroke-width="2.5"/><rect x="1" y="14" width="4" height="10" rx="2"/><circle cx="17" cy="27" r="6" fill="#111827" stroke-width="2"/><circle cx="47" cy="27" r="6" fill="#111827" stroke-width="2"/></svg>' },
+];
+const validBody = (id, def) => BODIES.some(x => x.id === id) ? id : def;
+const bodyOf = b => b.isPlayer ? validBody(Records.data.body, 'car') : b.p2 ? validBody(Records.data.body2, 'jeep') : BODIES[bikes.indexOf(b) % BODIES.length].id;
 const currentBoat = () => BOATS.find(m => m.id === Records.data.boat) || BOATS[0];
 const currentWing = () => WINGS.find(m => m.id === Records.data.wing) || WINGS[0];
 const UPGRADES = [
@@ -4632,6 +4661,102 @@ function boatCockpit(M, EYE) {
   return { cp, bars: spin };
 }
 
+// 🚗 סוגי כלי הרכב במרוץ – כל מתחרה נוהג בכלי אחר (הביצועים זהים; ההבדל הוא במראה ובגובה הנהג)
+function makeBody(type, add, tp, lean, M) {
+  const wheels = [], steerW = [];
+  const glow = (c, i) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: i });
+  const tint = new THREE.MeshStandardMaterial({ color: 0x0f1a24, metalness: .7, roughness: .08 });
+  const box = (p, w, h, d, mat, x, y, z, rx) => add(p, new THREE.BoxGeometry(w, h, d), mat, x, y, z, rx);
+  const cyl = (p, r, len, mat, x, y, z, r2 = r) => add(p, new THREE.CylinderGeometry(r2, r, len, 14).rotateX(Math.PI / 2), mat, x, y, z);   // גליל לאורך הרכב
+  const wheel = (p, x, z, r, w, front) => {
+    const piv = new THREE.Group(); piv.position.set(x, r, z); p.add(piv);
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 18).rotateZ(Math.PI / 2), M.rubber); t.castShadow = true; piv.add(t);
+    t.add(new THREE.Mesh(new THREE.CylinderGeometry(r * .6, r * .6, w + .03, 12).rotateZ(Math.PI / 2), M.alu));
+    t.add(new THREE.Mesh(new THREE.BoxGeometry(w + .05, r * 1.1, r * .22), M.carbon));
+    wheels.push(t); if (front) steerW.push(piv);
+  };
+  const lights = (p, x, yF, zF, yR, zR) => { for (const sd of [-1, 1]) { box(p, .4, .14, .06, glow(0xfff6d0, 2), sd * x, yF, zF); box(p, .4, .12, .06, glow(0xff2020, 1.6), sd * x, yR, zR); } };
+  let eyeY = 1.13, wingY = 1.3;
+  if (type === 'truck') {
+    box(tp, 1.9, .28, 4.9, M.carbon, 0, .72, 0);                          // שלדה
+    box(tp, 2.0, 1.3, 1.35, M.paint, 0, 1.5, 1.7);                        // תא נהג
+    box(tp, 1.8, .55, .06, tint, 0, 1.75, 2.39);
+    box(tp, 2.03, .45, .75, tint, 0, 1.78, 1.8);
+    box(tp, 2.1, 1.75, 3.25, M.accent, 0, 1.75, -.75);                    // ארגז מטען
+    box(tp, 2.12, .3, 3.27, M.paint, 0, 1.3, -.75);
+    box(tp, 2.05, .28, .22, M.metal, 0, .62, 2.45);                       // פגוש
+    box(tp, 1.2, .35, .06, M.carbon, 0, 1.1, 2.39);                       // גריל
+    for (const sd of [-1, 1]) box(tp, .12, .3, .08, M.carbon, sd * 1.1, 1.75, 2.2);
+    lights(lean, .72, .95, 2.4, 1.0, -2.4);
+    for (const sd of [-1, 1]) { wheel(lean, sd * .92, 1.7, .46, .36, true); wheel(lean, sd * .92, -.85, .46, .36); wheel(lean, sd * .92, -1.85, .46, .36); }
+    eyeY = 1.7; wingY = 2.7;
+  } else if (type === 'bus') {
+    box(tp, 2.1, 1.95, 5.0, M.paint, 0, 1.5, 0);                          // גוף
+    box(tp, 2.14, .62, 4.3, tint, 0, 1.85, -.15);                         // חלונות
+    box(tp, 1.9, .85, .06, tint, 0, 1.75, 2.5);
+    box(tp, 1.9, .5, .06, tint, 0, 1.9, -2.5);
+    box(tp, 2.13, .12, 5.02, M.accent, 0, 1.2, 0);                        // פס צד
+    box(tp, 2.0, .08, 4.7, M.accent, 0, 2.5, 0);                          // גג
+    box(tp, 1.2, .2, .07, glow(0xffb020, 1.2), 0, 2.32, 2.5);             // שלט יעד
+    box(tp, .03, 1.3, .7, M.carbon, 1.06, 1.25, 1.5);                     // דלת
+    box(tp, 2.12, .2, .2, M.metal, 0, .6, 2.45); box(tp, 2.12, .2, .2, M.metal, 0, .6, -2.45);
+    lights(lean, .75, .8, 2.52, .85, -2.52);
+    for (const sd of [-1, 1]) { wheel(lean, sd * .93, 1.65, .44, .34, true); wheel(lean, sd * .93, -1.55, .44, .34); }
+    eyeY = 1.75; wingY = 2.6;
+  } else if (type === 'tank') {
+    box(tp, 1.7, .55, 4.1, M.paint, 0, .95, 0);                           // תובה
+    box(tp, 1.7, .4, .9, M.paint, 0, .88, 2.1, .5);                       // חזית משופעת
+    for (const sd of [-1, 1]) {
+      box(tp, .5, .8, 4.6, M.rubber, sd * 1.0, .42, 0);                   // זחלים
+      box(tp, .58, .08, 4.5, M.paint, sd * 1.0, .86, 0);
+      for (let k = 0; k < 5; k++) wheel(lean, sd * 1.27, -1.8 + k * .9, .3, .06);   // גלגלי מרכוב (מסתובבים)
+    }
+    add(tp, new THREE.CylinderGeometry(.75, .9, .55, 12), M.paint, 0, 1.5, -.25);   // צריח
+    box(tp, .5, .4, .4, M.carbon, 0, 1.55, .5);
+    cyl(tp, .09, 2.3, M.metal, 0, 1.55, 1.5);                             // קנה
+    cyl(tp, .14, .3, M.carbon, 0, 1.55, 2.6);
+    add(tp, new THREE.CylinderGeometry(.28, .28, .1, 10), M.carbon, -.25, 1.8, -.4);
+    box(tp, .02, .9, .02, M.black, .5, 2.2, -.8);                         // אנטנה
+    lights(lean, .6, 1.3, 1.7, 1.0, -2.07);
+    eyeY = 1.6; wingY = 1.95;
+  } else if (type === 'jeep') {
+    box(tp, 1.9, .5, 4.0, M.paint, 0, .95, 0);                            // גוף מוגבה
+    box(tp, 1.8, .22, 1.3, M.paint, 0, 1.3, 1.3);                         // מכסה מנוע
+    box(tp, 1.4, .45, .06, M.carbon, 0, 1.05, 2.02);                      // גריל
+    box(tp, 2.0, .2, .2, M.metal, 0, .75, 2.1); box(tp, 2.0, .2, .2, M.metal, 0, .75, -2.1);
+    box(tp, 1.8, .6, .06, tint, 0, 1.75, .62, -.18);                      // שמשה
+    box(tp, 1.9, .07, .07, M.carbon, 0, 2.05, .57);
+    for (const sd of [-1, 1]) {                                           // כלוב התהפכות ומגיני בוץ
+      box(tp, .08, .95, .08, M.carbon, sd * .9, 1.65, -.3); box(tp, .08, .95, .08, M.carbon, sd * .9, 1.65, -1.6);
+      box(tp, .08, .08, 1.38, M.carbon, sd * .9, 2.12, -.95);
+      box(tp, .5, .1, 1.1, M.carbon, sd * 1.08, 1.12, 1.3); box(tp, .5, .1, 1.1, M.carbon, sd * 1.08, 1.12, -1.3);
+    }
+    box(tp, 1.88, .08, .08, M.carbon, 0, 2.12, -.3); box(tp, 1.88, .08, .08, M.carbon, 0, 2.12, -1.6);
+    box(tp, .6, .6, .18, M.black, 0, 1.55, -.72);                         // מושב
+    cyl(tp, .44, .26, M.rubber, 0, 1.2, -2.15); cyl(tp, .22, .28, M.alu, 0, 1.2, -2.16);   // גלגל רזרבי
+    addRider(add, tp, M, .45, -.35);
+    lights(lean, .65, 1.05, 2.06, 1.0, -2.03);
+    for (const sd of [-1, 1]) { wheel(lean, sd * 1.02, 1.3, .5, .4, true); wheel(lean, sd * 1.02, -1.3, .5, .4); }
+    eyeY = 1.5; wingY = 2.25;
+  } else {                                                                // 🛵 קולנועית: 4 גלגלים קטנים, מושב עם משענת, מוט היגוי וסל
+    const g = new THREE.Group(), gw = new THREE.Group(); g.scale.setScalar(1.2); gw.scale.setScalar(1.2); tp.add(g); lean.add(gw);
+    box(g, .8, .12, 1.7, M.paint, 0, .3, 0);
+    box(g, .7, .42, .45, M.paint, 0, .5, .72);
+    box(g, .8, .3, .6, M.paint, 0, .45, -.55);
+    box(g, .1, .25, .1, M.metal, 0, .68, -.5); box(g, .55, .1, .5, M.black, 0, .82, -.5);   // מושב
+    box(g, .55, .5, .09, M.black, 0, 1.12, -.78);
+    for (const sd of [-1, 1]) box(g, .07, .05, .4, M.black, sd * .33, 1.0, -.52);
+    box(g, .07, .85, .07, M.metal, 0, 1.0, .62, -.28);                    // מוט היגוי
+    box(g, .6, .06, .06, M.black, 0, 1.42, .5); box(g, .25, .1, .15, M.carbon, 0, 1.4, .52);
+    box(g, .45, .25, .28, M.carbon, 0, .95, .95);                         // סל
+    box(g, .02, 1.0, .02, M.metal, .35, 1.5, -.85); box(g, .02, .18, .26, glow(0xff7b00, .6), .35, 1.9, -.72);   // דגלון
+    addRider(add, g, M, -.17, -.45);
+    box(gw, .22, .1, .05, glow(0xfff6d0, 2), 0, .62, .96);
+    for (const sd of [-1, 1]) { box(gw, .12, .08, .05, glow(0xff2020, 1.6), sd * .28, .5, -.86); wheel(gw, sd * .36, .68, .2, .12, true); wheel(gw, sd * .36, -.68, .2, .12); }
+    eyeY = 1.45; wingY = 1.55;
+  }
+  return { wheels, steerW, eye: new THREE.Vector3(0, eyeY, -.6), wingY };
+}
 function makeVehicle(b, kind) {
   const hm = b.isPlayer || b.p2;                                      // שחקן 2 נוהג באותה מכונית/סירה/מטוס שרכשת – בצבע משלו
   const model = hm ? currentModel() : null, bm = hm && kind === 'boat' ? currentBoat() : null;
@@ -4642,8 +4767,16 @@ function makeVehicle(b, kind) {
   const lean = new THREE.Group(); root.add(lean);
   const tp = new THREE.Group(); lean.add(tp);
   const add = (parent, geo, mat, x, y, z, rx = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.x = rx; m.castShadow = true; parent.add(m); return m; };
-  let wheels = [], steerW = [], cp = null, bars = null, eye, domeRef = null;
-  if (kind === 'bike') {
+  let wheels = [], steerW = [], cp = null, bars = null, eye, domeRef = null, wingY = 1.3;
+  const body = kind === 'bike' ? bodyOf(b) : null;
+  if (body && body !== 'car') {
+    ({ wheels, steerW, eye, wingY } = makeBody(body, add, tp, lean, M));
+    if (model && model.gun) for (const sd of [-1, 1]) {                                              // 🔫 תותחים כפולים גם על הכלים האחרים
+      add(lean, new THREE.CylinderGeometry(0.055, 0.055, 1.0, 10), M.metal, sd * 0.55, eye.y - 0.25, 2.0, Math.PI / 2);
+      add(lean, new THREE.CylinderGeometry(0.07, 0.07, 0.08, 10), gunMuzzle, sd * 0.55, eye.y - 0.25, 2.52, Math.PI / 2);
+    }
+    if (b.isPlayer) { ({ cp, bars } = carCockpit(M, model || {}, new THREE.Vector3(0, 1.13, -0.6))); cp.position.y = eye.y - 1.13; }   // תא נהג בגובה הכלי
+  } else if (kind === 'bike') {
     // 🏎️ מכונית מרוץ: שלדה נמוכה ורחבה, תא נהג משופע, כנף אחורית ו-4 גלגלים (הקדמיים מסתובבים עם ההגה)
     const wide = (model && model.wide) || 1, W = wide;
     const glow = (c, i) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: i });
@@ -4731,7 +4864,7 @@ function makeVehicle(b, kind) {
   }
   // כנפיים מתקפלות (מצב דאייה): שתי כנפיים משוכות + זנב, נפתחות כשעפים מגשר/גג
   const wings = new THREE.Group(), wingPivots = [];
-  wings.position.set(0, kind === 'bike' ? 1.3 : 0.98, kind === 'bike' ? -0.3 : -0.35); wings.visible = false; lean.add(wings);
+  wings.position.set(0, kind === 'bike' ? wingY : 0.98, kind === 'bike' ? -0.3 : -0.35); wings.visible = false; lean.add(wings);
   const wingMat = wm ? new THREE.MeshStandardMaterial({ color: wm.color, metalness: .5, roughness: .3 }) : M.paint.clone(); wingMat.side = THREE.DoubleSide;
   const wingGlow = new THREE.MeshBasicMaterial({ color: wm ? wm.glow : 0x7df9ff, toneMapped: false });
   const tipMat = [new THREE.MeshBasicMaterial({ color: 0xff3030, toneMapped: false }), new THREE.MeshBasicMaterial({ color: 0x30ff70, toneMapped: false })];
@@ -5132,6 +5265,13 @@ addEventListener('keydown', e => {
   }
   if (e.repeat) return;
   if (shopOpen()) { if (e.code === 'Escape') closeShop(); return; }
+  if (pickOpen()) {                                                    // מסך בחירת כלי הרכב: 1–6 בחירה, Enter התחלה, Esc חזרה
+    const k = /^(Digit|Numpad)([1-6])$/.exec(e.code);
+    if (k) pickBody('body', BODIES[k[2] - 1].id);
+    else if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); confirmPick(); }
+    else if (e.code === 'Escape') closePicker();
+    return;
+  }
   if (e.code === 'Enter') {
     if (game.state === 'menu') startLevel(Records.data.maxLevel);
     else if (game.state === 'result' && game.shown) startLevel(game.won ? game.level + 1 : game.level);
@@ -5194,7 +5334,7 @@ function fitCameras() {
 function ensureMeshes() {
   const kinds = game.env.sea ? ['boat'] : ['bike', 'boat'];
   for (const b of bikes) {
-    const key = kinds.join('+') + '|' + (b.p2 ? 'P2/' : '') + (b.human ? [Records.data.model, Records.data.boat, Records.data.wing].join('/') : b.name);
+    const key = kinds.join('+') + '|' + (b.p2 ? 'P2/' : '') + (b.human ? [Records.data.model, Records.data.boat, Records.data.wing, bodyOf(b)].join('/') : b.name);
     if (b.meshKey !== key) {
       if (b.meshes) for (const m of Object.values(b.meshes)) disposeVehicle(m);
       if (b.isPlayer) game.fpOn = null;
@@ -6487,8 +6627,31 @@ function setupLevel(n) {
   try { renderer.compile(scene, camera); } catch (e) { /* לא קריטי */ }
 }
 
+// 🚦 מסך בחירת כלי רכב – נפתח לפני כל שלב חדש (בהמשך מנקודת ביקורת שמורה נשארים עם אותו כלי)
+let pickN = null;
+const pickOpen = () => !$('pick').classList.contains('hidden');
+function renderPicker() {
+  const two = twoP(), rows = two ? [['body', 'car', '🔴 שחקן 1'], ['body2', 'jeep', '🔵 שחקן 2']] : [['body', 'car', '']];
+  $('pickRows').innerHTML = rows.map(([key, def, title]) => `${title ? `<div class="pickRow">${title}</div>` : ''}<div class="pickGrid">` +
+    BODIES.map((v, i) => `<button class="pv${validBody(Records.data[key], def) === v.id ? ' on' : ''}" data-key="${key}" data-id="${v.id}">${v.icon}<b>${v.name}</b>${two ? '' : `<small>${i + 1}</small>`}</button>`).join('') + '</div>').join('');
+  $('pickRows').querySelectorAll('.pv').forEach(el => { el.onclick = () => pickBody(el.dataset.key, el.dataset.id); });
+}
+function pickBody(key, id) {                       // שחקן יחיד: לחיצה על כלי = יוצאים לדרך; 2 שחקנים: כל אחד בוחר ואז "התחל"
+  Records.data[key] = id; Records.save(); Sound.init(); Sound.beep(880, .08);
+  if (twoP()) renderPicker(); else confirmPick();
+}
+function openPicker(n) {
+  pickN = n; game.autoNext = 0;
+  const c = cityOf(n), W = worldOf(n);
+  $('pickSub').innerHTML = `${flagHTML(c)} ${c.name} · עולם ${W.num} · שלב ${W.stage}/5<br>כל מתחרה נוהג בכלי אחר – במה אתה נוסע?`;
+  renderPicker(); $('pick').classList.remove('hidden');
+}
+function closePicker() { $('pick').classList.add('hidden'); }
+function confirmPick() { closePicker(); startLevel(pickN, null, true); }
+
 // snap = מצב שמור מנקודת ביקורת (ממשיכים בדיוק מאותו מקום); בלעדיו – שלב חדש
-function startLevel(n, snap = null) {
+function startLevel(n, snap = null, picked = false) {
+  if (!snap && !picked) { openPicker(n); return; }
   Sound.init();
   Music.play(cityOf(n).id);                                    // 🎵 מנגינה משלה לכל עיר
   if (document.activeElement) document.activeElement.blur();
@@ -7113,6 +7276,8 @@ $('lvl1Btn').onclick = () => startLevel(1);
 $('shopBtn').onclick = () => openShop('menu');
 $('twoBtn').onclick = () => { Records.data.twoP = !Records.data.twoP; Records.save(); Sound.init(); Sound.beep(Records.data.twoP ? 900 : 400, .1); showMenu(); };
 $('shopClose').onclick = closeShop;
+$('pickGo').onclick = confirmPick;
+$('pickBack').onclick = closePicker;
 $('resumeBtn').onclick = togglePause;
 $('cpBtn').onclick = () => { togglePause(); goToCheckpoint(player); };
 $('restartBtn').onclick = () => startLevel(game.level);
