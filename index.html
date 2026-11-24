@@ -194,6 +194,7 @@
       <kbd>Space</kbd> טיל קדימה · <kbd>B</kbd> מוקש אחורה · <kbd>C</kbd> מצלמה · <kbd>G</kbd> / קליק: הפעלת תותח אוטומטי (Apex) – לחיצה אחת ויורה כל המשחק<br>
       ⚡ לייזרים · 🕳️ בורות · ✅ נקודות ביקורת – נפילה לא מאפסת את השלב<br>
       🪙 אספו מטבעות · 🔄 לולאות (צריך מהירות!) · 🛫 רמפות קפיצה<br>
+      🎵 מנגינה אחרת בכל עיר · <kbd>N</kbd> מוזיקה פועלת/כבויה · <kbd>M</kbd> השתקת כל הצלילים<br>
       🪂 גשר קפיצה – חייבים מהירות כדי לעבור את הנהר · 🌉 גשר ימי<br>
       👥 <b>2 שחקנים:</b> שחקן 1 – <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>/חיצים · <kbd>Space</kbd> טיל · <kbd>B</kbd> מוקש &nbsp;|&nbsp;
       שחקן 2 – <kbd>I</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd>/NumPad <kbd>8</kbd><kbd>4</kbd><kbd>5</kbd><kbd>6</kbd> · <kbd>U</kbd>/<kbd>Num0</kbd> טיל · <kbd>O</kbd>/<kbd>Num.</kbd> מוקש · <kbd>H</kbd>/<kbd>Num+</kbd> נקודת ביקורת
@@ -201,7 +202,8 @@
     <button class="btn green hidden" id="resumeRaceBtn"></button><br>
     <button class="btn" id="startBtn">🏎️ התחל מרוץ</button>
     <button class="btn gold" id="shopBtn">🛒 חנות</button><br>
-    <button class="btn ghost" id="twoBtn">👥 מצב 2 שחקנים: כבוי</button><br>
+    <button class="btn ghost" id="twoBtn">👥 מצב 2 שחקנים: כבוי</button>
+    <button class="btn ghost musicBtn">🎵 מוזיקה: פועלת</button><br>
     <button class="btn ghost hidden" id="lvl1Btn">התחל משלב 1</button>
   </div>
 </div>
@@ -225,6 +227,7 @@
   <button class="btn" id="resumeBtn">המשך</button><br>
   <button class="btn ghost" id="cpBtn">↩ חזרה לנקודת ביקורת</button>
   <button class="btn ghost" id="restartBtn">↻ התחל שלב מחדש</button><br>
+  <button class="btn ghost musicBtn">🎵 מוזיקה: פועלת</button>
   <button class="btn ghost" id="quitBtn">💾 שמור וצא לתפריט</button></div></div>
 
 <div id="err" class="hidden">לא הצלחתי לטעון את Three.js 😕<br>צריך חיבור לאינטרנט (הספרייה נטענת מ-CDN).</div>
@@ -4819,6 +4822,233 @@ const Sound = {
 };
 
 /* =========================================================
+   🎵 מוזיקה: מנגינה מקורית לכל עיר (כלים בלבד, מסונתזת ב-WebAudio – בלי קבצים)
+   כל שיר מוגדר ע"י סולם, קצב, כלים ומהלך אקורדים; המלחין בונה ממנו לחן קבוע (זרע לפי שם העיר).
+   ========================================================= */
+const Music = {
+  on: true, id: null, song: null, step: 0, next: 0, timer: null, out: null, noise: null, cache: {},
+  SCALES: {
+    major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10], dorian: [0, 2, 3, 5, 7, 9, 10], mixo: [0, 2, 4, 5, 7, 9, 10],
+    lydian: [0, 2, 4, 6, 7, 9, 11], phryg: [0, 1, 3, 5, 7, 8, 10], hijaz: [0, 1, 4, 5, 7, 8, 10], harm: [0, 2, 3, 5, 7, 8, 11],
+    dblharm: [0, 1, 4, 5, 7, 8, 11], pentMaj: [0, 2, 4, 7, 9], pentMin: [0, 3, 5, 7, 10], hira: [0, 2, 3, 7, 8],
+    pelog: [0, 1, 3, 7, 8], susPent: [0, 2, 5, 7, 9],
+  },
+  QUAL: { M: [0, 4, 7], m: [0, 3, 7], p: [0, 7], s: [0, 5, 7] },
+  // תופים: k=בס, s=סנר/טק, h=מצילה. אורך המחרוזת = מספר הצעדים בתיבה
+  DRUMS: {
+    none: {},
+    four: { k: 'x...x...x...x...', s: '....x.......x...', h: '..x...x...x...x.' },
+    rock: { k: 'x.......x.x.....', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.' },
+    half: { k: 'x.........x.....', s: '........x.......', h: 'x...x...x...x...' },
+    march: { k: 'x...x...x...x...', s: '....x.x.....x.xx' },
+    swing: { k: 'x.......x.......', s: '....x.......x...', h: 'x...x.x.x...x.x.' },
+    samba: { k: 'x..xx..xx..xx..x', s: '..x..x.x..x.x...', h: 'xxxxxxxxxxxxxxxx' },
+    maqsum: { k: 'x.......x.......', s: '..x...x.....x...', h: '....x.....x...x.' },
+    baladi: { k: 'x.x.....x.......', s: '......x.....x...', h: '....x.....x...x.' },
+    tabla: { k: 'x.....x...x.....', s: '...x.....x...x.x' },
+    tribal: { k: 'x..x..x.x..x..x.', s: '............x...', h: '..x...x...x...x.' },
+    afro: { k: 'x.....x.x.....x.', s: '....x.......x...', h: 'x.xxx.xxx.xxx.xx' },
+    latin: { k: 'x..x..x...x.x...', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.' },
+    oompah: { k: 'x...x...x...x...', s: '..x...x...x...x.' },
+    gallop: { k: 'x...x...x...x...', s: '....x.......x...', h: 'x.xxx.xxx.xxx.xx' },
+    wood: { k: 'x.......x.......', h: '....x.....x.x...' },
+    gong: { k: 'x...............', h: '........x.......' },
+    waltz: { k: 'x...........', s: '....x...x...' },
+    waltzLight: { k: 'x...........', h: '....x...x...' },
+    tarantella: { k: 'x.....x.....', s: '...x.....x..', h: 'x.xx.xx.xx.x' },
+    six8: { k: 'x.....x..x..', s: '...x.....x..', h: 'x.xx.xx.xx.x' },
+    barcarolle: { k: 'x.....x.....', h: '..x..x..x..x' },
+  },
+  // [קצב BPM, תו בסיס (MIDI), סולם, כלי מוביל, תופים, בס, ליווי, אקורדים A, אקורדים B, אפשרויות]
+  SONGS: {
+    menu: [92, 60, 'major', 'bell', 'none', 'long', 'roll', '0M 9m 5M 7M', '5M 0M 2m 7M', { dens: .5 }],
+    paris: [138, 60, 'major', 'accordion', 'waltz', 'oom', 'stab', '0M 9m 2m 7M', '5M 0M 2m 7M', { steps: 12 }],
+    london: [120, 62, 'major', 'saw', 'march', 'walk', 'pad', '0M 7M 9m 5M', '5M 7M 4m 9m', {}],
+    rome: [148, 57, 'harm', 'pluck', 'tarantella', 'oom', 'stab', '0m 0m 7M 0m', '5m 0m 7M 0m', { steps: 12, sub: 3, dens: 1.15 }],
+    moscow: [126, 62, 'harm', 'pluck', 'oompah', 'oom', 'stab', '0m 5m 7M 0m', '8M 3M 5m 7M', { dens: 1.1 }],
+    venice: [80, 67, 'major', 'flute', 'barcarolle', 'long', 'roll', '0M 4m 5M 7M', '9m 5M 2m 7M', { steps: 12, sub: 3, dens: .8 }],
+    nyc: [132, 65, 'mixo', 'sax', 'swing', 'walk', 'stab', '0M 5M 0M 7M', '5M 0M 2m 7M', { swing: .33 }],
+    rio: [104, 62, 'major', 'flute', 'samba', 'synco', 'stab', '0M 2m 7M 0M', '5M 4m 2m 7M', { dens: 1.2 }],
+    vegas: [118, 57, 'minor', 'saw', 'four', 'drive', 'up16', '0m 8M 3M 10M', '5m 8M 10M 0m', {}],
+    toronto: [112, 67, 'mixo', 'saw', 'rock', 'oom', 'up8', '0M 10M 5M 0M', '5M 0M 10M 7M', { dens: 1.15 }],
+    sf: [110, 64, 'dorian', 'square', 'rock', 'synco', 'stab', '0m 5M 0m 10M', '3M 5M 0m 7m', {}],
+    cairo: [100, 62, 'hijaz', 'pluck', 'maqsum', 'long', 'none', '0M 1M 0M 10m', '5m 1M 0M 0M', { dens: 1.1 }],
+    dubai: [112, 60, 'dblharm', 'flute', 'four', 'drive', 'pad', '0M 1M 5m 0M', '8M 1M 0M 0M', {}],
+    istanbul: [126, 64, 'phryg', 'pluck', 'baladi', 'oom', 'up8', '0m 1M 10m 0m', '3M 1M 10m 0m', { dens: 1.2 }],
+    marrakech: [132, 57, 'pentMin', 'pluck', 'six8', 'drive', 'none', '0m 10M 0m 7m', '5m 0m 10M 0m', { steps: 12, sub: 3, low: 1 }],
+    telaviv: [136, 64, 'minor', 'square', 'oompah', 'oom', 'stab', '0m 7M 0m 5m', '3M 10M 0m 7M', { dens: 1.1 }],
+    agra: [96, 61, 'dblharm', 'sitar', 'tabla', 'drone', 'none', '0p 0p 0p 0p', '5m 0p 1M 0p', { dens: 1.1 }],
+    beijing: [100, 62, 'pentMaj', 'pluck', 'wood', 'long', 'roll', '0M 9m 0M 7p', '9m 0M 2s 7p', {}],
+    tokyo: [140, 64, 'pentMin', 'bell', 'four', 'drive', 'up16', '0m 8M 10M 0m', '5m 3M 8M 10M', {}],
+    singapore: [108, 65, 'lydian', 'bell', 'half', 'long', 'pad', '0M 2M 0M 7M', '9m 2M 4m 7M', { dens: .8 }],
+    sydney: [148, 64, 'major', 'square', 'rock', 'drive', 'up8', '0M 5M 7M 5M', '9m 5M 0M 7M', {}],
+    amazon: [108, 62, 'pentMin', 'flute', 'tribal', 'synco', 'none', '0m 0m 10M 0m', '5m 0m 3M 10M', {}],
+    yucatan: [116, 64, 'hijaz', 'pluck', 'latin', 'synco', 'stab', '5m 3M 1M 0M', '0M 1M 3M 1M', { dens: 1.15 }],
+    congo: [126, 67, 'pentMaj', 'bell', 'afro', 'synco', 'up8', '0M 7M 5M 7M', '5M 0M 7M 0M', { dens: 1.25 }],
+    angkor: [88, 62, 'pelog', 'bell', 'gong', 'long', 'roll', '0p 0p 1M 0p', '8M 0p 1M 0p', { dens: .8 }],
+    borneo: [112, 60, 'susPent', 'flute', 'tribal', 'oom', 'roll', '0s 7s 5M 0s', '9m 5M 7s 0s', {}],
+    cyclone: [160, 60, 'major', 'organ', 'oompah', 'oom', 'stab', '0M 7M 7M 0M', '5M 0M 7M 0M', { dens: 1.2 }],
+    dragon: [140, 62, 'minor', 'saw', 'rock', 'drive', 'pad', '0m 10M 8M 7M', '3M 10M 8M 7M', {}],
+    neonloop: [150, 57, 'minor', 'saw', 'four', 'drive', 'up16', '0m 3M 10M 5m', '8M 10M 0m 0m', { dens: .9 }],
+    frost: [144, 67, 'major', 'bell', 'waltzLight', 'oom', 'roll', '0M 4m 5M 7M', '9m 4m 5M 7M', { steps: 12 }],
+    canyon: [132, 64, 'dorian', 'pluck', 'gallop', 'gallop', 'none', '0m 10M 5M 0m', '3M 10M 0m 7M', {}],
+  },
+  rng(seed) { let a = seed | 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; },
+
+  // ---- הלחנה: בונה את כל האירועים של השיר (32 תיבות בלולאה) ----
+  compose(id) {
+    if (this.cache[id]) return this.cache[id];
+    const d = this.SONGS[id]; if (!d) return null;
+    const [bpm, root, scaleName, lead, drum, bass, arp, pA, pB, o] = d;
+    const S = o.steps || 16, sub = o.sub || 4, sc = this.SCALES[scaleName], n = sc.length, dens = o.dens || 1;
+    let h = 7; for (const ch of id) h = Math.imul(h, 31) + ch.charCodeAt(0) | 0;
+    const R = this.rng(h);
+    const parse = s => s.split(' ').map(c => { const q = c.slice(-1), r = +c.slice(0, -1); return { r, pcs: this.QUAL[q].map(x => (r + x) % 12), q }; });
+    const A = parse(pA), B = parse(pB);
+    const semi = i => 12 * Math.floor(i / n) + sc[((i % n) + n) % n];                 // אינדקס בסולם → חצאי טונים מעל הבסיס
+    const near = (p, ch, pcs = ch.pcs) => { for (let k = 0; k <= 4; k++) for (const q of [p + k, p - k]) if (pcs.includes(((semi(q) % 12) + 12) % 12)) return q; return p; };
+    const center = n + (o.low ? -2 : 1), lo = center - Math.round(n * .6), hi = center + Math.round(n * .85);
+    const fold = p => p > hi ? hi - (p - hi) : p < lo ? lo + (lo - p) : p;
+    const W = sub === 3 ? [1, .12, .55] : [1, .1, .6, .14];                            // משקל כניסת תו לפי מיקומו בפעמה
+    const rhythm = k => { const r = []; for (let s = 0; s < S; s++) if (s === 0 || R() < W[s % sub] * k * (s % sub === 0 ? .8 : 1)) r.push(s); return r; };
+    const vary = r => { const x = r.filter(s => s === 0 || R() > .22); const s = sub * (1 + Math.floor(R() * (S / sub - 1))); if (!x.includes(s)) x.push(s); return x.sort((a, b) => a - b); };
+    const steps = c => Array.from({ length: c }, () => { const u = R(); return u < .34 ? 1 : u < .66 ? -1 : u < .76 ? 2 : u < .86 ? -2 : u < .92 ? 0 : u < .96 ? 3 : -3; });
+    // משפט של 4 תיבות: מוטיב, תשובה, חזרה על המוטיב, סיום. base = משפט קודם ששתי התיבות הראשונות שלו נשמרות
+    const phrase = (prog, k, shift, base) => {
+      const r1 = base ? base.r1 : rhythm(k), r2 = base ? base.r2 : vary(r1), d1 = base ? base.d1 : steps(S), d2 = steps(S);
+      const half = S / 2 - (S / 2) % sub, cad = r1.filter(s => s < half).concat([half]);
+      const rs = base ? [r1, r2, vary(r1), cad] : [r1, r2, r1, cad], ds = base ? [d1, d1, d2, d2] : [d1, d2, d1, d2];
+      const bars = [], endP = [], p0 = near(center + shift, prog[0]); let p = p0;
+      for (let b = 0; b < 4; b++) {
+        if (base && b < 2) { bars.push(base.bars[b]); endP.push(p = base.endP[b]); continue; }
+        const rr = rs[b], dd = ds[b], ch = prog[b], notes = [];
+        rr.forEach((s, j) => {
+          const last = b === 3 && j === rr.length - 1;
+          if (j === 0) p = near(b === 2 && !base ? p0 : p, ch); else p = fold(p + dd[j]);
+          if (last) p = near(p, ch, [ch.pcs[0], ch.pcs[prog === A ? 0 : 1]]);
+          else if (j > 0 && s % (sub * 2) === 0) p = near(p, ch);
+          const nx = j + 1 < rr.length ? rr[j + 1] : S;
+          notes.push({ s, m: root + semi(p), d: last ? S - s - sub * .5 : Math.max(1, (nx - s) * .92) });
+        });
+        bars.push(notes); endP.push(p);
+      }
+      return { bars, r1, r2, d1, endP };
+    };
+    const P1 = phrase(A, .8 * dens, 0), P1b = phrase(A, .8 * dens, 0, P1), P2 = phrase(B, .95 * dens, 2), P3 = phrase(A, .32 * dens, -1);
+    // מבנה השיר: A A' B A' | C(הפוגה שקטה) B A A'
+    const form = [[P1, A, 1], [P1b, A, 1], [P2, B, 1], [P1b, A, 1], [P3, A, 0], [P2, B, 1], [P1, A, 1], [P1b, A, 2]];
+    const D = this.DRUMS[drum] || {}, ev = [], bassM = r => { let m = root + r; while (m >= 50) m -= 12; while (m < 38) m += 12; return m; };
+    const beats = S / sub;
+    form.forEach(([ph, prog, full], sec) => {
+      for (let b = 0; b < 4; b++) {
+        const base = (sec * 4 + b) * S, ch = prog[b], push = (s, t, m, dur, v) => { (ev[base + s] || (ev[base + s] = [])).push({ t, m, d: dur, v }); };
+        for (let s = 0; s < S; s++) ev[base + s] = ev[base + s] || [];
+        ph.bars[b].forEach(x => push(x.s, 'l', x.m, x.d, 1));
+        // תופים (בהפוגה – רק מצילות; בתיבה האחרונה של השיר – מעבר)
+        for (let s = 0; s < S; s++) {
+          if (full && D.k && D.k[s] === 'x') push(s, 'k', 0, 1, 1);
+          if (full && D.s && D.s[s] === 'x') push(s, 's', 0, 1, 1);
+          if (D.h && D.h[s] === 'x') push(s, 'h', 0, 1, full ? 1 : .6);
+          if (full === 2 && b === 3 && D.k && s >= S - sub) push(s, 's', 0, 1, .5 + .5 * (s - S + sub) / sub);
+        }
+        // בס
+        const bm = bassM(ch.r), fifth = bm + 7, third = bm + (ch.q === 'm' ? 3 : ch.q === 'M' ? 4 : 7);
+        const bs = !full ? 'long' : bass;
+        if (bs === 'long' || bs === 'drone') { push(0, 'b', bm, S * .96, 1); if (bs === 'drone') push(0, 'b', fifth, S * .96, .5); }
+        else if (bs === 'oom') { push(0, 'b', bm, sub * .85, 1); if (!(S === 12 && sub === 4)) for (let k = 2; k < beats; k += 2) push(k * sub, 'b', k % 4 === 2 ? (fifth - 12 >= 36 ? fifth - 12 : fifth) : bm, sub * .85, 1); }
+        else if (bs === 'walk') [bm, third, fifth, b % 2 ? fifth + 2 : third].forEach((m, k) => k < beats && push(k * sub, 'b', m, sub * .85, 1));
+        else if (bs === 'drive') for (let s = 0; s < S; s++) { if (sub === 4 ? s % 2 === 0 : s % 3 !== 1) push(s, 'b', bm, sub === 4 ? 1.5 : 1, s % sub === 0 ? 1 : .7); }
+        else if (bs === 'gallop') for (let s = 0; s < S; s++) { if (s % 4 !== 1) push(s, 'b', s % 8 >= 4 && s % 4 === 0 ? fifth : bm, 1, s % 4 === 0 ? 1 : .7); }
+        else if (bs === 'synco') [[0, bm, 3], [3, fifth, 2.5], [6, fifth, 2], [8, bm, 3], [11, fifth, 2.5], [14, bm, 2]].forEach(([s, m, dur]) => s < S && push(s, 'b', m, dur, 1));
+        // ליווי
+        let am = root + ch.r; while (am > 66) am -= 12; while (am < 55) am += 12;
+        const tones = this.QUAL[ch.q].map(x => am + x), ar = !full && arp === 'none' ? 'roll' : arp;
+        if (ar === 'pad') tones.forEach(m => push(0, 'p', m, S * .98, 1));
+        else if (ar === 'stab') for (let s = 0; s < S; s++) { const off = sub === 3 ? (s % 6 === 3) : S === 12 ? (s === 4 || s === 8) : (s % 4 === 2); if (off && full) tones.forEach(m => push(s, 'a', m, 1.2, .8)); else if (!full && s === 0) tones.forEach(m => push(0, 'p', m, S * .98, 1)); }
+        else if (ar === 'up8' || ar === 'up16' || ar === 'roll') {
+          const every = ar === 'up16' || sub === 3 ? 1 : 2, seq = ar === 'roll' ? [0, 1, 2, 1] : ch.q === 'p' ? [0, 1, 0, 1] : [0, 1, 2, 1, 2, 1];
+          const set = [...tones, tones[0] + 12];
+          for (let s = 0, k = 0; s < S; s += every, k++) { const i = ar === 'roll' ? seq[k % seq.length] : k % set.length; push(s, 'a', (ar === 'roll' ? tones[i % tones.length] : set[i]) + (ar === 'up16' ? 12 : 0), every * (ar === 'roll' ? 1.8 : .9), ar === 'roll' ? .8 : .7); }
+        }
+      }
+    });
+    return this.cache[id] = { id, ev, len: ev.length, dt: 60 / bpm / sub, lead, swing: o.swing || 0, sub };
+  },
+
+  // ---- סינתזה ----
+  ensure() {
+    const ac = Sound.ac; if (!ac) return false;
+    if (this.out) return true;
+    this.out = ac.createGain(); this.out.gain.value = 0;
+    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 5;
+    this.out.connect(comp); comp.connect(ac.destination);
+    const len = ac.sampleRate * .5 | 0, buf = this.noise = ac.createBuffer(1, len, ac.sampleRate), ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+    return true;
+  },
+  // כלים: [גלים, דה-טיון (סנט), עוצמת אוקטבה נוספת, מסנן Hz, התקפה, דעיכה, רמת החזקה, שחרור]
+  INST: {
+    square: [['square'], 0, 0, 2400, .008, .08, .6, .05], saw: [['sawtooth', 'sawtooth'], 7, 0, 2000, .01, .1, .7, .06],
+    sax: [['sawtooth'], 0, 0, 1300, .03, .1, .8, .06], accordion: [['square', 'sawtooth'], 9, 0, 1700, .03, .1, .85, .05],
+    organ: [['square', 'triangle'], 0, .5, 2600, .008, .05, .8, .04], flute: [['sine', 'triangle'], 3, 0, 3000, .05, .1, .85, .08],
+    pluck: [['sawtooth', 'triangle'], 4, 0, 2600, .004, .13, 0, .1], sitar: [['sawtooth', 'square'], 12, .25, 3400, .004, .2, 0, .15],
+    bell: [['sine'], 0, .3, 6000, .004, .32, 0, .25], bass: [['triangle', 'square'], 0, 0, 500, .008, .12, .7, .05],
+    arp: [['triangle'], 0, 0, 2400, .006, .1, 0, .08], pad: [['sawtooth', 'sawtooth'], 10, 0, 800, .12, .2, .8, .2],
+  },
+  tone(t, midi, dur, inst, vol) {
+    const ac = Sound.ac, [waves, det, oct, cut, a, dec, sus, rel] = this.INST[inst] || this.INST.square;
+    const f = 440 * Math.pow(2, (midi - 69) / 12), g = ac.createGain(), lp = ac.createBiquadFilter();
+    const hold = sus ? dur : Math.max(dur, dec * 4), end = t + hold + rel * 5;
+    lp.type = 'lowpass'; lp.frequency.value = cut; lp.connect(g); g.connect(this.out);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + a); g.gain.setTargetAtTime(vol * sus, t + a, dec);
+    if (sus) g.gain.setTargetAtTime(0, t + dur, rel);
+    waves.forEach((w, i) => {
+      const o = ac.createOscillator(); o.type = w; o.frequency.value = f; o.detune.value = i ? det : -det * (waves.length > 1 ? 1 : 0);
+      o.connect(lp); o.start(t); o.stop(end);
+    });
+    if (oct) { const o = ac.createOscillator(), og = ac.createGain(); o.type = 'sine'; o.frequency.value = f * (inst === 'bell' ? 3 : 2); og.gain.value = oct; o.connect(og); og.connect(lp); o.start(t); o.stop(end); }
+  },
+  drum(t, kind, v) {
+    const ac = Sound.ac, g = ac.createGain(); g.connect(this.out);
+    if (kind === 'k') {
+      const o = ac.createOscillator(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(48, t + .11);
+      g.gain.setValueAtTime(.32 * v, t); g.gain.exponentialRampToValueAtTime(.001, t + .2); o.connect(g); o.start(t); o.stop(t + .21);
+    } else {
+      const src = ac.createBufferSource(), f = ac.createBiquadFilter(), hat = kind === 'h', d = hat ? .04 : .13;
+      src.buffer = this.noise; f.type = hat ? 'highpass' : 'bandpass'; f.frequency.value = hat ? 7000 : 1900; f.Q.value = hat ? .5 : .8;
+      g.gain.setValueAtTime((hat ? .05 : .15) * v, t); g.gain.exponentialRampToValueAtTime(.001, t + d);
+      src.connect(f); f.connect(g); src.start(t, Math.random() * .3, d + .02);
+    }
+  },
+  play(id) {
+    if (!this.SONGS[id]) id = 'menu';
+    this.id = id; this.song = this.compose(id); this.step = 0; this.next = 0;
+    if (!this.timer) this.timer = setInterval(() => this.tick(), 40);
+  },
+  tick() {
+    if (!this.song || !this.ensure()) return;
+    const ac = Sound.ac, now = ac.currentTime, hold = !this.on || Sound.muted || game.state === 'paused' || document.hidden;
+    this.out.gain.setTargetAtTime(hold ? 0 : game.state === 'menu' ? .4 : .55, now, .12);
+    if (hold) { this.next = 0; return; }                                                // בהשהיה: עוצרים, ואחר כך ממשיכים מאותו מקום
+    if (this.next < now) this.next = now + .06;
+    const sg = this.song, L = { l: [sg.lead, .1], b: ['bass', .16], a: ['arp', .05], p: ['pad', .028] };
+    while (this.next < now + .3) {
+      const sw = sg.swing && sg.sub === 4 && this.step % 4 === 2 ? sg.swing * sg.dt * 2 : 0, t = this.next + sw;
+      for (const e of sg.ev[this.step]) {
+        if (L[e.t]) this.tone(t, e.m, e.d * sg.dt, L[e.t][0], L[e.t][1] * e.v); else this.drum(t, e.t, e.v);
+      }
+      this.step = (this.step + 1) % sg.len; this.next += sg.dt;
+    }
+  },
+  label() { document.querySelectorAll('.musicBtn').forEach(b => { b.textContent = `🎵 מוזיקה: ${this.on ? 'פועלת' : 'כבויה'}`; }); },
+  toggle() {
+    this.on = !this.on; Records.data.music = this.on; Records.save();
+    toast(this.on ? '🎵 מוזיקה פועלת' : '🔇 מוזיקה כבויה', 1.2);
+    this.label();
+  },
+};
+
+/* =========================================================
    חלקיקים: ניצוצות ורסס מים (מאגרים קבועים)
    ========================================================= */
 function particlePool(n, color, size) {
@@ -4915,6 +5145,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyG') setGun(!Records.data.gunOn);                   // G: הפעלה (לחיצה אחת) / כיבוי מכוון של התותח
   if ((e.code === 'KeyP' || e.code === 'Escape') && (game.state === 'racing' || game.state === 'paused')) togglePause();
   if (e.code === 'KeyM') Sound.muted = !Sound.muted;
+  if (e.code === 'KeyN') { Sound.init(); Music.toggle(); }             // N: מוזיקה פועלת/כבויה (M משתיק הכול)
   if ((e.code === 'KeyC' || e.code === 'KeyV') && !player2.p2) setCamMode(game.cam === 'fp' ? 'chase' : 'fp');
 });
 addEventListener('keyup', e => { if (KEYS[e.code]) input[KEYS[e.code]] = false; if (KEYS2[e.code]) input2[KEYS2[e.code]] = false; });
@@ -6259,6 +6490,7 @@ function setupLevel(n) {
 // snap = מצב שמור מנקודת ביקורת (ממשיכים בדיוק מאותו מקום); בלעדיו – שלב חדש
 function startLevel(n, snap = null) {
   Sound.init();
+  Music.play(cityOf(n).id);                                    // 🎵 מנגינה משלה לכל עיר
   if (document.activeElement) document.activeElement.blur();
   if (!snap) clearSnapshot();
   setupLevel(n);
@@ -6295,6 +6527,7 @@ function startLevel(n, snap = null) {
 
 function showMenu() {
   game.state = 'menu';
+  Music.play('menu');
   fitCameras();
   ['end', 'pause', 'hud', 'lights', 'shop'].forEach(id => $(id).classList.add('hidden'));
   $('menu').classList.remove('hidden');
@@ -6890,6 +7123,10 @@ addEventListener('pagehide', saveOnLeave);
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveOnLeave(); });
 $('resumeRaceBtn').onclick = () => { const rs = Records.data.resume; if (rs) startLevel(rs.level, rs); };
 Records.load();
+Music.on = Records.data.music !== false; Music.label();
+document.querySelectorAll('.musicBtn').forEach(b => { b.onclick = () => { Sound.init(); Music.toggle(); }; });
+// הדפדפן מתיר סאונד רק אחרי מגע/לחיצה ראשונה – אז מתחילה מנגינת התפריט
+['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => Sound.init(), { once: true }));
 game.cam = Records.data.cam === 'chase' ? 'chase' : 'fp';
 showMenu();
 requestAnimationFrame(frame);
