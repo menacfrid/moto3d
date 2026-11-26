@@ -5153,7 +5153,7 @@ const Music = {
           if (last) p = near(p, ch, [ch.pcs[0], ch.pcs[prog === A ? 0 : 1]]);
           else if (j > 0 && s % (sub * 2) === 0) p = near(p, ch);
           const nx = j + 1 < rr.length ? rr[j + 1] : S;
-          notes.push({ s, m: root + semi(p), d: last ? S - s - sub * .5 : Math.max(1, (nx - s) * .92) });
+          notes.push({ s, m: root + semi(p), d: last ? S - s - sub * .5 : Math.max(.8, Math.min(2.4, (nx - s) * .7)) });   // תווים קצרים וקופצניים
         });
         bars.push(notes); endP.push(p);
       }
@@ -5171,15 +5171,18 @@ const Music = {
         ph.bars[b].forEach(x => push(x.s, 'l', x.m, x.d, 1));
         // תופים (בהפוגה – רק מצילות; בתיבה האחרונה של השיר – מעבר)
         for (let s = 0; s < S; s++) {
-          if (full && D.k && D.k[s] === 'x') push(s, 'k', 0, 1, 1);
+          if (s % sub === 0 || (D.k && D.k[s] === 'x')) push(s, 'k', 0, 1, s % sub === 0 ? 1 : .7);     // 🕺 קצב מקפיץ: בס-תוף על כל פעימה
+          if (s % sub === 0 && (s / sub) % 2 === 1) push(s, 'c', 0, 1, 1);                              // מחיאת כף על הפעימות הזוגיות
+          if (s % sub === 2) push(s, 'o', 0, 1, 1);                                                     // מצילה פתוחה בין הפעימות
           if (full && D.s && D.s[s] === 'x') push(s, 's', 0, 1, 1);
           if (D.h && D.h[s] === 'x') push(s, 'h', 0, 1, full ? 1 : .6);
           if (full === 2 && b === 3 && D.k && s >= S - sub) push(s, 's', 0, 1, .5 + .5 * (s - S + sub) / sub);
         }
         // בס
         const bm = bassM(ch.r), fifth = bm + 7, third = bm + (ch.q === 'm' ? 3 : ch.q === 'M' ? 4 : 7);
-        const bs = !full ? 'long' : bass;
-        if (bs === 'long' || bs === 'drone') { push(0, 'b', bm, S * .96, 1); if (bs === 'drone') push(0, 'b', fifth, S * .96, .5); }
+        const bs = 'bounce';
+        if (bs === 'bounce') for (let s = 0; s < S; s += sub) { push(s, 'b', bm, sub * .45, 1); push(s + 2, 'b', bm + 12, sub * .4, .8); }   // בס קופץ: תו נמוך על הפעימה, אוקטבה מעליו באמצע
+        else if (bs === 'long' || bs === 'drone') { push(0, 'b', bm, S * .96, 1); if (bs === 'drone') push(0, 'b', fifth, S * .96, .5); }
         else if (bs === 'oom') { push(0, 'b', bm, sub * .85, 1); if (!(S === 12 && sub === 4)) for (let k = 2; k < beats; k += 2) push(k * sub, 'b', k % 4 === 2 ? (fifth - 12 >= 36 ? fifth - 12 : fifth) : bm, sub * .85, 1); }
         else if (bs === 'walk') [bm, third, fifth, b % 2 ? fifth + 2 : third].forEach((m, k) => k < beats && push(k * sub, 'b', m, sub * .85, 1));
         else if (bs === 'drive') for (let s = 0; s < S; s++) { if (sub === 4 ? s % 2 === 0 : s % 3 !== 1) push(s, 'b', bm, sub === 4 ? 1.5 : 1, s % sub === 0 ? 1 : .7); }
@@ -5207,6 +5210,7 @@ const Music = {
     this.out = ac.createGain(); this.out.gain.value = 0;
     const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 5;
     this.out.connect(comp); comp.connect(ac.destination);
+    this.duck = ac.createGain(); this.duck.connect(this.out);                 // "שאיבה": הכלים מונמכים לרגע בכל מכת בס-תוף
     const len = ac.sampleRate * .5 | 0, buf = this.noise = ac.createBuffer(1, len, ac.sampleRate), ch = buf.getChannelData(0);
     for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
     return true;
@@ -5224,7 +5228,7 @@ const Music = {
     const ac = Sound.ac, [waves, det, oct, cut, a, dec, sus, rel] = this.INST[inst] || this.INST.square;
     const f = 440 * Math.pow(2, (midi - 69) / 12), g = ac.createGain(), lp = ac.createBiquadFilter();
     const hold = sus ? dur : Math.max(dur, dec * 4), end = t + hold + rel * 5;
-    lp.type = 'lowpass'; lp.frequency.value = cut; lp.connect(g); g.connect(this.out);
+    lp.type = 'lowpass'; lp.frequency.value = cut; lp.connect(g); g.connect(this.duck);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + a); g.gain.setTargetAtTime(vol * sus, t + a, dec);
     if (sus) g.gain.setTargetAtTime(0, t + dur, rel);
     waves.forEach((w, i) => {
@@ -5236,12 +5240,12 @@ const Music = {
   drum(t, kind, v) {
     const ac = Sound.ac, g = ac.createGain(); g.connect(this.out);
     if (kind === 'k') {
-      const o = ac.createOscillator(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(48, t + .11);
-      g.gain.setValueAtTime(.32 * v, t); g.gain.exponentialRampToValueAtTime(.001, t + .2); o.connect(g); o.start(t); o.stop(t + .21);
+      const o = ac.createOscillator(); o.frequency.setValueAtTime(175, t); o.frequency.exponentialRampToValueAtTime(46, t + .1);
+      g.gain.setValueAtTime(.42 * v, t); g.gain.exponentialRampToValueAtTime(.001, t + .22); o.connect(g); o.start(t); o.stop(t + .23);
     } else {
-      const src = ac.createBufferSource(), f = ac.createBiquadFilter(), hat = kind === 'h', d = hat ? .04 : .13;
-      src.buffer = this.noise; f.type = hat ? 'highpass' : 'bandpass'; f.frequency.value = hat ? 7000 : 1900; f.Q.value = hat ? .5 : .8;
-      g.gain.setValueAtTime((hat ? .05 : .15) * v, t); g.gain.exponentialRampToValueAtTime(.001, t + d);
+      const src = ac.createBufferSource(), f = ac.createBiquadFilter(), hat = kind === 'h' || kind === 'o', d = kind === 'o' ? .13 : hat ? .04 : kind === 'c' ? .1 : .13;
+      src.buffer = this.noise; f.type = hat ? 'highpass' : 'bandpass'; f.frequency.value = hat ? 7000 : kind === 'c' ? 1400 : 1900; f.Q.value = hat ? .5 : .8;
+      g.gain.setValueAtTime((kind === 'o' ? .06 : hat ? .05 : kind === 'c' ? .2 : .15) * v, t); g.gain.exponentialRampToValueAtTime(.001, t + d);
       src.connect(f); f.connect(g); src.start(t, Math.random() * .3, d + .02);
     }
   },
@@ -5260,7 +5264,8 @@ const Music = {
     while (this.next < now + .3) {
       const sw = sg.swing && sg.sub === 4 && this.step % 4 === 2 ? sg.swing * sg.dt * 2 : 0, t = this.next + sw;
       for (const e of sg.ev[this.step]) {
-        if (L[e.t]) this.tone(t, e.m, e.d * sg.dt, L[e.t][0], L[e.t][1] * e.v); else this.drum(t, e.t, e.v);
+        if (L[e.t]) this.tone(t, e.m, e.d * sg.dt, L[e.t][0], L[e.t][1] * e.v);
+        else { this.drum(t, e.t, e.v); if (e.t === 'k' && e.v === 1) { this.duck.gain.setValueAtTime(.45, t); this.duck.gain.linearRampToValueAtTime(1, t + sg.dt * sg.sub * .75); } }
       }
       this.step = (this.step + 1) % sg.len; this.next += sg.dt;
     }
