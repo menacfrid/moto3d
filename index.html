@@ -138,7 +138,7 @@
   #pick { background: rgba(8,12,22,.92); }
   .pickRow { margin: 10px 0 4px; font-weight: 800; }
   .pickGrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 12px; }
-  @media (max-width: 640px) { .pickGrid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px) { .pickGrid { grid-template-columns: repeat(3, 1fr) !important; } }
   .pv { cursor: pointer; color: #fff; font: inherit; background: rgba(255,255,255,.06); border: 2px solid rgba(255,255,255,.14); border-radius: 14px; padding: 10px 4px 8px; }
   .pv:hover { background: rgba(255,255,255,.14); }
   .pv.on { border-color: #a855f7; background: rgba(168,85,247,.28); box-shadow: 0 0 12px rgba(168,85,247,.5); }
@@ -199,6 +199,7 @@
     <div id="worlds"></div>
     <div class="bal">💰 <b id="menuPts">0</b> נקודות</div>
     <div class="keys">
+      ✈️ השלב השישי בכל עולם הוא שלב תעופה: מטוס · מסוק · רחפן · חללית – טסים דרך הטבעות<br>
       🚦 לפני כל שלב בוחרים כלי רכב: מכונית · משאית · טנק · אוטובוס · קולנועית · ג'יפ<br>
       <kbd>↑</kbd>/<kbd>W</kbd> גז &nbsp; <kbd>↓</kbd>/<kbd>S</kbd> בלם &nbsp; <kbd>←</kbd><kbd>→</kbd> היגוי<br>
       <kbd>Space</kbd> טיל קדימה · <kbd>B</kbd> מוקש אחורה · <kbd>C</kbd> מצלמה · <kbd>G</kbd> / קליק: הפעלת תותח אוטומטי (Apex) – לחיצה אחת ויורה כל המשחק<br>
@@ -242,7 +243,7 @@
 
 <!-- בחירת כלי רכב לפני כל שלב -->
 <div id="pick" class="overlay hidden"><div class="card wide">
-  <h2>🚦 בחר כלי רכב</h2><p class="sub" id="pickSub"></p>
+  <h2 id="pickTitle">🚦 בחר כלי רכב</h2><p class="sub" id="pickSub"></p>
   <div id="pickRows"></div>
   <button class="btn green" id="pickGo">🏁 התחל</button>
   <button class="btn ghost" id="pickBack">↩ חזרה</button>
@@ -343,8 +344,20 @@ const BODIES = [
   { id: 'scooter', name: "קולנועית", icon: '<svg viewBox="0 0 64 36" fill="currentColor" stroke="currentColor" stroke-width="0"><rect x="11" y="24" width="42" height="3"/><rect x="13" y="14" width="13" height="3"/><rect x="11" y="5" width="3" height="11"/><rect x="18" y="17" width="3" height="7"/><path d="M45 25l-4-17h3l4 17z"/><rect x="36" y="6" width="10" height="2.5"/><rect x="46" y="15" width="8" height="6"/><circle cx="14" cy="29" r="4" fill="#111827" stroke-width="2"/><circle cx="50" cy="29" r="4" fill="#111827" stroke-width="2"/></svg>' },
   { id: 'jeep', name: "ג'יפ", icon: '<svg viewBox="0 0 64 36" fill="currentColor" stroke="currentColor" stroke-width="0"><path d="M5 26V17h31l3-9h3l-2 9h19v9z"/><path d="M12 17V6h20v11" fill="none" stroke-width="2.5"/><rect x="1" y="14" width="4" height="10" rx="2"/><circle cx="17" cy="27" r="6" fill="#111827" stroke-width="2"/><circle cx="47" cy="27" r="6" fill="#111827" stroke-width="2"/></svg>' },
 ];
-const validBody = (id, def) => BODIES.some(x => x.id === id) ? id : def;
-const bodyOf = b => b.isPlayer ? validBody(Records.data.body, 'car') : b.p2 ? validBody(Records.data.body2, 'jeep') : BODIES[bikes.indexOf(b) % BODIES.length].id;
+// ✈️ כלי הטיס של שלב התעופה (השלב השישי בכל עולם)
+const AIRS = [
+  { id: 'plane', name: "מטוס", icon: '<svg viewBox="0 0 64 36" fill="currentColor" stroke="currentColor" stroke-width="0"><path d="M3 20c0-3 6-5 14-5h9L38 4h6l-6 11h12l5-6h4l-3 9 3 3v2H17C9 23 3 23 3 20z"/><path d="M26 22h14l-8 10h-5z"/></svg>' },
+  { id: 'heli', name: "מסוק", icon: '<svg viewBox="0 0 64 36" fill="currentColor" stroke="currentColor" stroke-width="0"><rect x="6" y="4" width="46" height="2.5"/><rect x="27" y="6" width="3" height="5"/><path d="M12 22c0-7 6-11 15-11h8c5 0 8 4 9 7l16-3v4l-16 4c-2 4-6 6-11 6H22c-6 0-10-3-10-7z"/><rect x="56" y="9" width="2.5" height="12"/><rect x="14" y="32" width="30" height="2.5"/><rect x="20" y="28" width="2.5" height="5"/><rect x="34" y="28" width="2.5" height="5"/></svg>' },
+  { id: 'drone', name: "רחפן", icon: '<svg viewBox="0 0 64 36" fill="currentColor" stroke="currentColor" stroke-width="0"><rect x="22" y="15" width="20" height="9" rx="3"/><rect x="8" y="17" width="48" height="3"/><rect x="2" y="9" width="18" height="2.5" rx="1"/><rect x="44" y="9" width="18" height="2.5" rx="1"/><rect x="10" y="11" width="2.5" height="8"/><rect x="51.5" y="11" width="2.5" height="8"/><rect x="25" y="24" width="2.5" height="8"/><rect x="36.5" y="24" width="2.5" height="8"/><circle cx="32" cy="27" r="3.5"/></svg>' },
+  { id: 'ship', name: "חללית", icon: '<svg viewBox="0 0 64 36" fill="currentColor" stroke="currentColor" stroke-width="0"><ellipse cx="32" cy="21" rx="29" ry="7"/><path d="M19 17c0-8 6-13 13-13s13 5 13 13z"/><g fill="#111827"><circle cx="14" cy="21" r="2"/><circle cx="26" cy="23" r="2"/><circle cx="38" cy="23" r="2"/><circle cx="50" cy="21" r="2"/></g><rect x="22" y="29" width="3" height="6"/><rect x="39" y="29" width="3" height="6"/></svg>' },
+];
+const isAir = id => AIRS.some(x => x.id === id);
+const validBody = (id, def, list = BODIES) => list.some(x => x.id === id) ? id : def;
+const bodyOf = b => {
+  const i = bikes.indexOf(b);
+  if (game.env.sky) return b.isPlayer ? validBody(Records.data.air, 'plane', AIRS) : b.p2 ? validBody(Records.data.air2, 'heli', AIRS) : AIRS[i % AIRS.length].id;
+  return b.isPlayer ? validBody(Records.data.body, 'car') : b.p2 ? validBody(Records.data.body2, 'jeep') : BODIES[i % BODIES.length].id;
+};
 const currentBoat = () => BOATS.find(m => m.id === Records.data.boat) || BOATS[0];
 const currentWing = () => WINGS.find(m => m.id === Records.data.wing) || WINGS[0];
 const UPGRADES = [
@@ -478,17 +491,22 @@ CITIES.push(
   { id: 'canyon', flag: '🏜️', name: 'קניון הסופה', en: 'STORM CANYON', theme: 'desert', tod: 'desertSunset', lm: [], fc: ['#ea580c', '#fde68a', '#7c2d12'],
     coaster: { col: 0xea580c, col2: 0x111827 }, desc: 'הגמר: הגבעות הגבוהות ביותר, airtime ושיגורים מעל הקניון' },
 );
-const cityOf = n => CITIES[(n - 1) % CITIES.length];
+const STG = 6;                                                       // שלבים בכל עולם: 5 ערים + שלב תעופה
+// ✈️ שלב התעופה של כל עולם: טסים מעל העיר הראשונה של העולם
+const SKY_CITIES = {};
+const skyCity = wi => SKY_CITIES[wi] || (SKY_CITIES[wi] = { ...CITIES[wi * 5], id: 'sky' + (wi + 1), name: 'שמי ' + WORLDS[wi].name, en: 'SKY RACE', sky: true, realistic: false, real: null, coaster: null,
+  desc: 'שלב תעופה: ממריאים מהמסלול, טסים דרך טבעות בין הבניינים ונוחתים על קו הסיום' });
+const cityOf = n => { const wi = Math.floor((n - 1) / STG) % WORLDS.length, k = (n - 1) % STG; return k < 5 ? CITIES[wi * 5 + k] : skyCity(wi); };
 // דגל מצויר בצבעי המדינה (אימוג'י של דגלים לא מוצג ב-Windows)
 const VERT_FLAG = new Set(['paris', 'rome', 'venice', 'toronto']);
 const flagHTML = c => { const [a, b, d] = c.fc; return `<span class="flg" style="background:linear-gradient(${VERT_FLAG.has(c.id) ? 90 : 180}deg,${a} 0 33.3%,${b} 33.3% 66.6%,${d} 66.6%)"></span>`; };
-const worldOf = n => { const i = Math.floor((n - 1) / 5); return { idx: i % WORLDS.length, num: i % WORLDS.length + 1, round: Math.floor(i / WORLDS.length) + 1, stage: (n - 1) % 5 + 1, first: i * 5 + 1, ...WORLDS[i % WORLDS.length] }; };
+const worldOf = n => { const i = Math.floor((n - 1) / STG); return { idx: i % WORLDS.length, num: i % WORLDS.length + 1, round: Math.floor(i / WORLDS.length) + 1, stage: (n - 1) % STG + 1, first: i * STG + 1, ...WORLDS[i % WORLDS.length] }; };
 
 function envFor(n) {
-  const city = cityOf(n), sea = n % 5 === 0 && !city.coaster, round = Math.floor((n - 1) / CITIES.length) + 1;
+  const city = cityOf(n), k = (n - 1) % STG, sky = k === 5, sea = k === 4 && !city.coaster, round = Math.floor((n - 1) / (WORLDS.length * STG)) + 1;
   let tod = city.tod;
   if (round > 1) tod = city.tod2 || (tod === 'day' ? 'night' : tod === 'sunset' ? 'day' : tod);   // בסבב השני – שעה אחרת ביום
-  return { theme: city.theme, sea, tod, city };
+  return { theme: city.theme, sea, sky, tod, city };
 }
 
 // קושי לפי שלב
@@ -524,12 +542,15 @@ function levelCfg(n) {
     dive: env.sea ? 0 : 1,                       // צלילה תת-ימית
     traffic: env.sea ? 0 : Math.min(4 + Math.floor(n / 2), 9),   // מכוניות תנועה
   };
+  if (env.sky) Object.assign(cfg, { sky: true, loops: 0, ramps: 0, obst: 0, pits: 0, jumps: 0, seaBridges: 0, megas: 0, roofs: 0, canals: 0, indoor: 0, inferno: 0,
+    police: 0, dive: 0, traffic: 0, rMin: 46, rMax: 85, p90: 0.35 });                                   // ✈️ שלב תעופה: מסלול אווירי רחב בלי מכשולי קרקע
   if (env.city.coaster) Object.assign(cfg, coasterCfg(n));                    // 🎢 עולם רכבות ההרים
   if (env.city.real && !env.sea) Object.assign(cfg, { ldn: env.city.real, jumps: 0, seaBridges: 0, roofs: 0, canals: 0, dive: 0, megas: 0 });   // 🇬🇧 מפה אמיתית
   return cfg;
 }
 // סדר הישורות הארוכות במסלול (גשר קפיצה / ריצת גגות / גשר ימי)
 function longKinds(cfg) {
+  if (cfg.sky) return [];
   if (cfg.coaster) return ['loopzone', 'inferno', 'loopzone', 'loopzone'];
   if (cfg.ldn) return ['inferno', 'indoor'];                       // לונדון: השריפה הגדולה בצ'יפסייד, ריצה בתוך מגדל בלידנהול
   // פריז הריאליסטית: שאנז אליזה → אייפל + שייט בסיין → גשר קפיצה → ריצת גגות ודאייה
@@ -2298,7 +2319,7 @@ function planFeatures(cfg) {
       TR.coins.push({ s: r.s + r.len + v * t, d: 0, y, air: true });
     }
   }
-  for (const c of TR.coins) { const p = trackPos(c.s, c.d); c.x = p.x; c.z = p.z; c.taken = false; }
+  for (const c of TR.coins) { const p = trackPos(c.s, c.d); c.x = p.x; c.z = p.z; c.taken = false; if (cfg.sky) c.y = skyAlt(c.s) + 0.9; }
   TR.coins.sort((a, b) => a.s - b.s);
 }
 
@@ -2489,6 +2510,7 @@ function buildWorld(n, cfg) {
   buildFeatures(C, env);
   world.add(makeGate(TR.startS, 'START', '#1d4ed8'), makeGate(TR.finishS, 'FINISH', '#b91c1c'));
   for (const c of TR.cps) world.add(makeGate(c.s, 'CHECKPOINT', '#15803d', false));
+  if (cfg.sky) buildSky();                                        // ✈️ טבעות ועננים
   buildHazards(env);
   buildTrains(env);
   buildInferno(env);
@@ -2652,7 +2674,7 @@ const TRAIN = { U: 135, carL: 13, gap: 0.8, top: 4.3, halfW: 1.7 };
 // תכנון מפגשי רכבת על ישורות פנויות (נקרא מתוך planFeatures)
 function planTrains(cfg, free, used, straight) {
   TR.trains = [];
-  if (cfg.env.sea) return;
+  if (cfg.env.sea || cfg.sky) return;
   const rnd = TR.rnd, n = cfg.n, count = n < 2 ? 1 : n < 6 ? 2 : 3;
   for (let k = 0, made = 0; k < 300 && made < count; k++) {
     const s = TR.startS + 160 + rnd() * (TR.finishS - TR.startS - 360);
@@ -4663,7 +4685,7 @@ function boatCockpit(M, EYE) {
 
 // 🚗 סוגי כלי הרכב במרוץ – כל מתחרה נוהג בכלי אחר (הביצועים זהים; ההבדל הוא במראה ובגובה הנהג)
 function makeBody(type, add, tp, lean, M) {
-  const wheels = [], steerW = [];
+  const wheels = [], steerW = [], rotors = [];
   const glow = (c, i) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: i });
   const tint = new THREE.MeshStandardMaterial({ color: 0x0f1a24, metalness: .7, roughness: .08 });
   const box = (p, w, h, d, mat, x, y, z, rx) => add(p, new THREE.BoxGeometry(w, h, d), mat, x, y, z, rx);
@@ -4738,6 +4760,70 @@ function makeBody(type, add, tp, lean, M) {
     lights(lean, .65, 1.05, 2.06, 1.0, -2.03);
     for (const sd of [-1, 1]) { wheel(lean, sd * 1.02, 1.3, .5, .4, true); wheel(lean, sd * 1.02, -1.3, .5, .4); }
     eyeY = 1.5; wingY = 2.25;
+  } else if (type === 'plane') {                                          // ✈️ מטוס: גוף, כנפיים, זנב, מדחף וגלגלי נחיתה
+    cyl(tp, .5, 3.4, M.paint, 0, 1.05, 0);
+    cyl(tp, .16, 1.5, M.paint, 0, 1.1, -2.4, .5);
+    add(tp, new THREE.ConeGeometry(.5, .9, 14).rotateX(Math.PI / 2), M.accent, 0, 1.05, 2.15);
+    add(tp, new THREE.SphereGeometry(.42, 14, 10), tint, 0, 1.42, .55).scale.set(1, 1, 1.9);
+    box(tp, 5.4, .09, 1.15, M.paint, 0, .95, .15);
+    box(tp, 1.9, .07, .6, M.paint, 0, 1.15, -2.8); box(tp, .08, .95, .75, M.accent, 0, 1.6, -2.75);
+    for (const sd of [-1, 1]) {
+      box(tp, .35, .11, 1.17, M.accent, sd * 2.6, .95, .15);
+      cyl(tp, .2, .9, M.metal, sd * 1.35, .76, .35);
+      box(lean, .12, .1, .12, glow(sd < 0 ? 0xff3030 : 0x30ff70, 2), sd * 2.78, .97, .4);
+      wheel(lean, sd * .9, -.1, .22, .14);
+    }
+    wheel(lean, 0, 1.6, .2, .12, true);
+    const prop = new THREE.Group(); prop.position.set(0, 1.05, 2.62); lean.add(prop); rotors.push([prop, 'z']);
+    box(prop, 1.9, .16, .04, M.carbon, 0, 0, 0); box(prop, .16, 1.9, .04, M.carbon, 0, 0, 0);
+    eyeY = 1.5; wingY = 1.7;
+  } else if (type === 'heli') {                                           // 🚁 מסוק: תא, זנב, רוטור ראשי ורוטור זנב מסתובבים
+    box(tp, 1.7, 1.35, 2.3, M.paint, 0, 1.35, .3);
+    box(tp, 1.5, .8, .9, tint, 0, 1.5, 1.6);
+    box(tp, 1.72, .5, 1.0, tint, 0, 1.6, .6);
+    box(tp, 1.3, .45, .9, M.paint, 0, .95, 1.6);
+    cyl(tp, .12, 2.7, M.paint, 0, 1.55, -2.1, .3);
+    box(tp, .08, 1.0, .5, M.accent, 0, 1.9, -3.3); box(tp, .9, .06, .4, M.accent, 0, 1.6, -3.1);
+    add(tp, new THREE.CylinderGeometry(.09, .09, .45, 8), M.metal, 0, 2.25, .3);
+    for (const sd of [-1, 1]) {
+      box(tp, .08, .08, 2.7, M.metal, sd * .8, .22, .4);
+      box(tp, .06, .5, .06, M.metal, sd * .8, .47, 1.1); box(tp, .06, .5, .06, M.metal, sd * .8, .47, -.3);
+    }
+    const main = new THREE.Group(); main.position.set(0, 2.5, .3); lean.add(main); rotors.push([main, 'y']);
+    box(main, 5.8, .04, .3, M.carbon, 0, 0, 0); box(main, .3, .04, 5.8, M.carbon, 0, 0, 0);
+    const tr = new THREE.Group(); tr.position.set(.14, 1.9, -3.3); lean.add(tr); rotors.push([tr, 'x']);
+    box(tr, .03, 1.1, .13, M.carbon, 0, 0, 0); box(tr, .03, .13, 1.1, M.carbon, 0, 0, 0);
+    lights(lean, .5, .85, 2.06, 1.3, -.86);
+    eyeY = 1.6; wingY = 2.7;
+  } else if (type === 'drone') {                                          // 🛸 רחפן: 4 זרועות, 4 מדחפים מסתובבים, מצלמה
+    box(tp, 1.2, .36, 1.7, M.paint, 0, 1.0, 0);
+    box(tp, .8, .2, 1.05, M.accent, 0, 1.27, 0);
+    add(tp, new THREE.SphereGeometry(.24, 12, 10), tint, 0, .88, .95);
+    for (const a of [1, -1]) box(tp, 3.3, .12, .2, M.carbon, 0, 1.0, 0).rotation.y = a * Math.PI / 4;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      const x = sx * 1.1, z = sz * 1.1;
+      add(tp, new THREE.CylinderGeometry(.16, .16, .3, 10), M.metal, x, 1.15, z);
+      add(tp, new THREE.TorusGeometry(.58, .045, 6, 20).rotateX(Math.PI / 2), M.accent, x, 1.3, z);
+      const r = new THREE.Group(); r.position.set(x, 1.34, z); r.rotation.y = sx * sz; lean.add(r); rotors.push([r, 'y']);
+      box(r, 1.05, .03, .13, M.carbon, 0, 0, 0); box(r, .13, .03, 1.05, M.carbon, 0, 0, 0);
+      box(tp, .06, .6, .06, M.metal, sx * .5, .55, sz * .65);
+      box(lean, .14, .1, .14, glow(sz > 0 ? 0xfff6d0 : 0xff2020, 2), x, 1.0, z + sz * .2);
+    }
+    eyeY = 1.5; wingY = 1.7;
+  } else if (type === 'ship') {                                           // 🛸 חללית: צלחת מעופפת עם כיפה, טבעת אורות מסתובבת ומנועים מאחור
+    add(tp, new THREE.CylinderGeometry(1.15, 2.15, .38, 24), M.paint, 0, 1.12, 0);
+    add(tp, new THREE.CylinderGeometry(2.15, 1.0, .32, 24), M.accent, 0, .77, 0);
+    add(tp, new THREE.SphereGeometry(.95, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), tint, 0, 1.25, 0);
+    add(lean, new THREE.CylinderGeometry(.75, .55, .14, 18), glow(0x38e8ff, 2.2), 0, .55, 0);
+    const ringG = new THREE.Group(); ringG.position.set(0, .95, 0); lean.add(ringG); rotors.push([ringG, 'y', .12]);
+    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; add(ringG, new THREE.SphereGeometry(.11, 8, 6), glow(k % 2 ? 0xffe066 : 0xff5bd0, 2.4), Math.sin(a) * 2.12, 0, Math.cos(a) * 2.12); }
+    for (const sd of [-1, 1]) {
+      box(tp, .1, .7, .9, M.paint, sd * .9, 1.55, -1.5, -.3);
+      cyl(tp, .22, .8, M.metal, sd * .7, 1.0, -2.0);
+      add(lean, new THREE.ConeGeometry(.18, .7, 10).rotateX(-Math.PI / 2), glow(0xff8a2a, 2.5), sd * .7, 1.0, -2.7);
+    }
+    box(lean, .5, .1, .08, glow(0xfff6d0, 2), 0, 1.0, 2.12);
+    eyeY = 1.5; wingY = 2.2;
   } else {                                                                // 🛵 קולנועית: 4 גלגלים קטנים, מושב עם משענת, מוט היגוי וסל
     const g = new THREE.Group(), gw = new THREE.Group(); g.scale.setScalar(1.2); gw.scale.setScalar(1.2); tp.add(g); lean.add(gw);
     box(g, .8, .12, 1.7, M.paint, 0, .3, 0);
@@ -4755,7 +4841,7 @@ function makeBody(type, add, tp, lean, M) {
     for (const sd of [-1, 1]) { box(gw, .12, .08, .05, glow(0xff2020, 1.6), sd * .28, .5, -.86); wheel(gw, sd * .36, .68, .2, .12, true); wheel(gw, sd * .36, -.68, .2, .12); }
     eyeY = 1.45; wingY = 1.55;
   }
-  return { wheels, steerW, eye: new THREE.Vector3(0, eyeY, -.6), wingY };
+  return { wheels, steerW, rotors, eye: new THREE.Vector3(0, eyeY, -.6), wingY };
 }
 function makeVehicle(b, kind) {
   const hm = b.isPlayer || b.p2;                                      // שחקן 2 נוהג באותה מכונית/סירה/מטוס שרכשת – בצבע משלו
@@ -4767,15 +4853,15 @@ function makeVehicle(b, kind) {
   const lean = new THREE.Group(); root.add(lean);
   const tp = new THREE.Group(); lean.add(tp);
   const add = (parent, geo, mat, x, y, z, rx = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.x = rx; m.castShadow = true; parent.add(m); return m; };
-  let wheels = [], steerW = [], cp = null, bars = null, eye, domeRef = null, wingY = 1.3;
+  let wheels = [], steerW = [], rotors = [], cp = null, bars = null, eye, domeRef = null, wingY = 1.3;
   const body = kind === 'bike' ? bodyOf(b) : null;
   if (body && body !== 'car') {
-    ({ wheels, steerW, eye, wingY } = makeBody(body, add, tp, lean, M));
-    if (model && model.gun) for (const sd of [-1, 1]) {                                              // 🔫 תותחים כפולים גם על הכלים האחרים
+    ({ wheels, steerW, rotors, eye, wingY } = makeBody(body, add, tp, lean, M));
+    if (model && model.gun && (b.isPlayer || b.p2)) for (const sd of [-1, 1]) {                    // 🔫 תותחים כפולים גם על הכלים האחרים
       add(lean, new THREE.CylinderGeometry(0.055, 0.055, 1.0, 10), M.metal, sd * 0.55, eye.y - 0.25, 2.0, Math.PI / 2);
       add(lean, new THREE.CylinderGeometry(0.07, 0.07, 0.08, 10), gunMuzzle, sd * 0.55, eye.y - 0.25, 2.52, Math.PI / 2);
     }
-    if (b.isPlayer) { ({ cp, bars } = carCockpit(M, model || {}, new THREE.Vector3(0, 1.13, -0.6))); cp.position.y = eye.y - 1.13; }   // תא נהג בגובה הכלי
+    if (b.isPlayer && !isAir(body)) { ({ cp, bars } = carCockpit(M, model || {}, new THREE.Vector3(0, 1.13, -0.6))); cp.position.y = eye.y - 1.13; }   // תא נהג בגובה הכלי
   } else if (kind === 'bike') {
     // 🏎️ מכונית מרוץ: שלדה נמוכה ורחבה, תא נהג משופע, כנף אחורית ו-4 גלגלים (הקדמיים מסתובבים עם ההגה)
     const wide = (model && model.wide) || 1, W = wide;
@@ -4895,7 +4981,7 @@ function makeVehicle(b, kind) {
     root.add(headlight, headlight.target);
   } else if (!CLEAN_HUD) root.add(nameSprite(b.name, b.css));
   scene.add(root);
-  return { root, lean, wheels, steerW, tp, cp, bars, kind, eye, wings, wingPivots, jets, dome: domeRef };
+  return { root, lean, wheels, steerW, rotors, tp, cp, bars, kind, eye, wings, wingPivots, jets, dome: domeRef };
 }
 function disposeVehicle(m) {
   scene.remove(m.root);
@@ -5024,6 +5110,12 @@ const Music = {
     dragon: [168, 62, 'minor', 'saw', 'rock', 'drive', 'pad', '0m 10M 8M 7M', '3M 10M 8M 7M', { dens: 1.1 }],
     neonloop: [176, 57, 'minor', 'saw', 'four', 'drive', 'up16', '0m 3M 10M 5m', '8M 10M 0m 0m', { dens: 1.05 }],
     frost: [200, 67, 'major', 'bell', 'waltz', 'oom', 'roll', '0M 4m 5M 7M', '9m 4m 5M 7M', { steps: 12, dens: 1.1 }],
+    sky1: [168, 62, 'major', 'saw', 'four', 'drive', 'up16', '0M 7M 9m 5M', '5M 7M 0M 7M', { dens: 1.1 }],
+    sky2: [160, 64, 'mixo', 'square', 'rock', 'drive', 'up8', '0M 10M 5M 0M', '5M 10M 0M 7M', { dens: 1.15 }],
+    sky3: [172, 57, 'hijaz', 'saw', 'four', 'drive', 'up16', '0M 1M 0M 10m', '5m 1M 0M 0M', { dens: 1.1 }],
+    sky4: [176, 64, 'pentMin', 'bell', 'four', 'drive', 'up16', '0m 10M 8M 10M', '5m 8M 10M 0m', { dens: 1.1 }],
+    sky5: [164, 62, 'dorian', 'flute', 'afro', 'synco', 'up8', '0m 5M 0m 10M', '3M 10M 0m 7m', { dens: 1.2 }],
+    sky6: [184, 60, 'lydian', 'organ', 'four', 'drive', 'up16', '0M 2M 0M 7M', '9m 2M 4m 7M', { dens: 1.15 }],
     canyon: [164, 64, 'dorian', 'pluck', 'gallop', 'gallop', 'up8', '0m 10M 5M 0m', '3M 10M 0m 7M', { dens: 1.1 }],
   },
   rng(seed) { let a = seed | 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; },
@@ -5231,6 +5323,14 @@ const Records = {
       delete this.data.gunOff;
       this.data.points = Math.max(0, Math.floor(+this.data.points || 0));
       this.data.maxLevel = Math.max(1, Math.floor(+this.data.maxLevel || 1));   // לא מאפסים שלבים גם אם הנתון פגום
+      if (!this.data.stg6) {                                                    // מעבר מ-5 ל-6 שלבים בעולם: מספרי השלבים השמורים זזים
+        const mg = o => o + Math.floor((o - 1) / 5), D = this.data;
+        D.maxLevel = mg(D.maxLevel);
+        if (D.lastLevel >= 1) D.lastLevel = mg(Math.floor(D.lastLevel));
+        if (D.best) D.best = Object.fromEntries(Object.entries(D.best).map(([k, v]) => [mg(+k), v]));
+        if (D.resume && D.resume.level >= 1) D.resume.level = mg(D.resume.level);
+        D.stg6 = true;
+      }
     } catch (e) {}
   },
   save() { try { localStorage.setItem(CFG.STORAGE, JSON.stringify(this.data)); } catch (e) {} },
@@ -5266,8 +5366,8 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   if (shopOpen()) { if (e.code === 'Escape') closeShop(); return; }
   if (pickOpen()) {                                                    // מסך בחירת כלי הרכב: 1–6 בחירה, Enter התחלה, Esc חזרה
-    const k = /^(Digit|Numpad)([1-6])$/.exec(e.code);
-    if (k) pickBody('body', BODIES[k[2] - 1].id);
+    const k = /^(Digit|Numpad)([1-6])$/.exec(e.code), ps = pickSet();
+    if (k && ps.list[k[2] - 1]) pickBody(ps.keys[0][0], ps.list[k[2] - 1].id);
     else if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); confirmPick(); }
     else if (e.code === 'Escape') closePicker();
     return;
@@ -5332,9 +5432,9 @@ function fitCameras() {
 
 // כל רוכב מחזיק אופנוע + סירה (ביבשה) ומחליף ביניהם תוך כדי המרוץ (Morphing)
 function ensureMeshes() {
-  const kinds = game.env.sea ? ['boat'] : ['bike', 'boat'];
+  const kinds = game.env.sea ? ['boat'] : game.env.sky ? ['bike'] : ['bike', 'boat'];
   for (const b of bikes) {
-    const key = kinds.join('+') + '|' + (b.p2 ? 'P2/' : '') + (b.human ? [Records.data.model, Records.data.boat, Records.data.wing, bodyOf(b)].join('/') : b.name);
+    const key = kinds.join('+') + '|' + (b.p2 ? 'P2/' : '') + (b.human ? [Records.data.model, Records.data.boat, Records.data.wing, bodyOf(b)].join('/') : b.name + '/' + bodyOf(b));
     if (b.meshKey !== key) {
       if (b.meshes) for (const m of Object.values(b.meshes)) disposeVehicle(m);
       if (b.isPlayer) game.fpOn = null;
@@ -5413,7 +5513,7 @@ function placeOnGrid(cfg) {
     Object.assign(b, {
       x: p.x + r.x * d, z: p.z + r.z * d, y: 0, vy: 0, air: false, airT: 0, pitch: 0, roll: 0, loop: null, onRamp: null,
       h: TR.H[i], speed: 0, px: 0, pz: 0, steer: 0, lean: 0, spin: 0,
-      idx: i, s, d, crashed: 0, ghost: 0, crashDir: 1, finished: false, finishTime: 0,
+      idx: i, s, d, ringI: 0, crashed: 0, ghost: 0, crashDir: 1, finished: false, finishTime: 0,
       targetD: d, timer: rand(3, 7), sprayT: 0, cp: 0, spinOut: 0, pitFall: false, respawnS: null, glide: false, glideOK: false, wingK: 0, morphT: 0,
       vmax: st ? st.vmax : cfg.aiTop * rand(0.96, 1.03),
       accelK: st ? st.accelK : cfg.aiAccel * rand(0.95, 1.05) * (cfg.env.sea ? BOAT.accel : 1),
@@ -5546,7 +5646,7 @@ function updateJets(dt) {
   if (racing && game.jetSpawnT > 0) game.jetSpawnT -= dt;
   // הופעה: רק כשאתה באוויר / על הגגות, ואין כבר מטוסים בזירה
   if (high && game.jetSpawnT <= 0 && player.speed > 14 && player.s < TR.finishS - 160 && !jets.some(j => j.on)) {
-    game.jetSpawnT = Math.max(6, rand(10, 16) - game.level * 0.3);
+    game.jetSpawnT = Math.max(6, rand(10, 16) - game.level * 0.3) * (game.env.sky ? 2.2 : 1);   // בשלב התעופה תמיד גבוהים – מטוסי הקרב מגיעים לעיתים רחוקות יותר
     const two = game.level >= 3 && Math.random() < 0.55, chase = Math.random() < 0.65;
     jets.forEach((j, i) => {
       if (i === 1 && !two) return;
@@ -6053,7 +6153,12 @@ function rampAt(s, d) {
 const rampY = (r, s) => r.prof ? r.prof(clamp(s, r.s, r.s + r.len)) : r.h * (s - r.s) / r.len;
 const rampSl = (r, s) => r.prof ? (rampY(r, s + 0.6) - rampY(r, s - 0.6)) / 1.2 : r.h / r.len;
 const canalAt = (s, d) => { for (const K of TR.canals) if (s > K.s0 && s < K.s1 && (!K.dc || (d != null && Math.abs(d - K.dc(s)) <= K.hw))) return K; return null; };
+// ✈️ גובה הטיסה לאורך שלב התעופה: המראה אחרי קו הזינוק, גלים של טיפוס וצלילה, נחיתה לפני קו הסיום
+const skyAlt = s => { const a = clamp((s - TR.startS - 30) / 260, 0, 1), z = clamp((TR.finishS - 20 - s) / 240, 0, 1);
+  return a * a * (3 - 2 * a) * z * z * (3 - 2 * z) * (34 + 13 * Math.sin(s / 170) + 6 * Math.sin(s / 61 + 1)); };
+const skySlope = s => (skyAlt(s + 2) - skyAlt(s - 2)) / 4;
 function surfaceY(b) {
+  if (game.env.sky) return skyAlt(b.s);
   const r = rampAt(b.s, b.d);
   if (r && r.dive) return rampY(r, b.s);                                  // מסלול הצלילה מתחת למים
   const ry = r ? rampY(r, b.s) : 0;
@@ -6114,7 +6219,7 @@ function updateBike(b, ctl, dt) {
       const fx1 = Math.sin(b.h), fz1 = Math.cos(b.h), along = vx * fx1 + vz * fz1;
       b.speed = along; b.px = vx - fx1 * along; b.pz = vz - fz1 * along;
     } else b.h += dh;
-    const leanT = sea ? b.steer * 0.75 * clamp(av / 18, 0, 1) * 0.45 : -b.steer * 0.07 * clamp(av / 25, 0, 1);   // מכונית: גלגול גוף קטן החוצה
+    const leanT = game.env.sky ? b.steer * 0.4 * clamp(av / 18, 0, 1) : sea ? b.steer * 0.75 * clamp(av / 18, 0, 1) * 0.45 : -b.steer * 0.07 * clamp(av / 25, 0, 1);   // מכונית: גלגול גוף קטן החוצה
     b.lean += (leanT - b.lean) * Math.min(1, dt * 6);
   }
   if (b.ghost > 0) b.ghost -= dt;
@@ -6230,7 +6335,7 @@ function vertical(b, dt, prevS) {
   }
   // תנוחת אורך (pitch) לתצוגה
   const r2 = !b.air && b.onRamp;
-  const target = b.air ? Math.atan2(b.vy, Math.max(8, b.speed)) * 0.7 : r2 ? Math.atan(rampSl(r2, b.s)) : 0;
+  const target = b.air ? Math.atan2(b.vy, Math.max(8, b.speed)) * 0.7 : r2 ? Math.atan(rampSl(r2, b.s)) : game.env.sky ? Math.atan(skySlope(b.s)) : 0;
   b.pitch += (target - b.pitch) * Math.min(1, dt * 10);
   if (b.sub) b.roll *= 0.9;
   else if (b.boat && !b.air) {
@@ -6476,7 +6581,31 @@ function collideBikes() {
 }
 
 /* ---------- מטבעות ---------- */
-function collectCoins() { for (const b of humans()) collectCoinsFor(b); }
+function collectCoins() { for (const b of humans()) { collectCoinsFor(b); passRings(b); } }
+// ✈️ טבעות בשלב התעופה: מי שעובר דרך מרכז הטבעת מקבל נקודות
+function passRings(b) {
+  const L = TR.rings; if (!L || b.crashed > 0) return;
+  for (b.ringI = b.ringI || 0; b.ringI < L.length && b.s >= L[b.ringI].s; b.ringI++) {
+    const r = L[b.ringI];
+    if (b.s - r.s < 15 && Math.abs(b.d - r.d) < 3.3) { addPoints(60, '🎯 דרך הטבעת!'); Sound.coin(); if (b.isPlayer || !r.m.userData.hit) { r.m.visible = false; r.m.userData.hit = true; } }
+  }
+}
+function buildSky() {
+  const rnd = TR.rnd, cols = [0x38e8ff, 0xffe066, 0xff5bd0, 0x7dff7a];
+  TR.rings = [];
+  for (let s = TR.startS + 330, k = 0; s < TR.finishS - 290; s += 130, k++) {
+    const d = [-6, 0, 6, 0][k % 4], p = trackPos(s, d);
+    const m = new THREE.Mesh(new THREE.TorusGeometry(3.5, .3, 8, 28), new THREE.MeshBasicMaterial({ color: cols[k % 4], toneMapped: false }));
+    m.position.set(p.x, skyAlt(s) + 1.2, p.z); m.rotation.y = TR.H[idxAt(s)]; world.add(m);
+    TR.rings.push({ s, d, m });
+  }
+  const cg = new THREE.IcosahedronGeometry(1, 1), cm = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, flatShading: true, transparent: true, opacity: .9 });
+  for (let k = 0; k < 40; k++) {                                          // עננים משני צידי נתיב הטיסה
+    const s = TR.startS + 200 + rnd() * (TR.finishS - TR.startS - 300), p = trackPos(s, (rnd() < .5 ? -1 : 1) * (45 + rnd() * 110)), g = new THREE.Group();
+    for (let j = 0; j < 3; j++) { const c = new THREE.Mesh(cg, cm); c.position.set((j - 1) * 5 + rnd() * 2, rnd() * 2, rnd() * 4); c.scale.set(5 + rnd() * 4, 3 + rnd() * 2, 4 + rnd() * 3); g.add(c); }
+    g.position.set(p.x, skyAlt(s) + 8 + rnd() * 40, p.z); g.rotation.y = rnd() * 6.28; world.add(g);
+  }
+}
 function collectCoinsFor(b) {
   if (b.loop || b.crashed > 0) return;
   const C = TR.coins, rad = b.magnet;
@@ -6630,10 +6759,11 @@ function setupLevel(n) {
 // 🚦 מסך בחירת כלי רכב – נפתח לפני כל שלב חדש (בהמשך מנקודת ביקורת שמורה נשארים עם אותו כלי)
 let pickN = null;
 const pickOpen = () => !$('pick').classList.contains('hidden');
+const pickSet = () => envFor(pickN).sky ? { list: AIRS, keys: [['air', 'plane'], ['air2', 'heli']] } : { list: BODIES, keys: [['body', 'car'], ['body2', 'jeep']] };
 function renderPicker() {
-  const two = twoP(), rows = two ? [['body', 'car', '🔴 שחקן 1'], ['body2', 'jeep', '🔵 שחקן 2']] : [['body', 'car', '']];
-  $('pickRows').innerHTML = rows.map(([key, def, title]) => `${title ? `<div class="pickRow">${title}</div>` : ''}<div class="pickGrid">` +
-    BODIES.map((v, i) => `<button class="pv${validBody(Records.data[key], def) === v.id ? ' on' : ''}" data-key="${key}" data-id="${v.id}">${v.icon}<b>${v.name}</b>${two ? '' : `<small>${i + 1}</small>`}</button>`).join('') + '</div>').join('');
+  const two = twoP(), { list, keys } = pickSet(), titles = two ? ['🔴 שחקן 1', '🔵 שחקן 2'] : [''];
+  $('pickRows').innerHTML = titles.map((title, r) => `${title ? `<div class="pickRow">${title}</div>` : ''}<div class="pickGrid" style="grid-template-columns:repeat(${list.length},1fr)">` +
+    list.map((v, i) => `<button class="pv${validBody(Records.data[keys[r][0]], keys[r][1], list) === v.id ? ' on' : ''}" data-key="${keys[r][0]}" data-id="${v.id}">${v.icon}<b>${v.name}</b>${two ? '' : `<small>${i + 1}</small>`}</button>`).join('') + '</div>').join('');
   $('pickRows').querySelectorAll('.pv').forEach(el => { el.onclick = () => pickBody(el.dataset.key, el.dataset.id); });
 }
 function pickBody(key, id) {                       // שחקן יחיד: לחיצה על כלי = יוצאים לדרך; 2 שחקנים: כל אחד בוחר ואז "התחל"
@@ -6642,8 +6772,9 @@ function pickBody(key, id) {                       // שחקן יחיד: לחי�
 }
 function openPicker(n) {
   pickN = n; game.autoNext = 0;
-  const c = cityOf(n), W = worldOf(n);
-  $('pickSub').innerHTML = `${flagHTML(c)} ${c.name} · עולם ${W.num} · שלב ${W.stage}/5<br>כל מתחרה נוהג בכלי אחר – במה אתה נוסע?`;
+  const c = cityOf(n), W = worldOf(n), sky = envFor(n).sky;
+  $('pickTitle').textContent = sky ? '✈️ בחר כלי טיס' : '🚦 בחר כלי רכב';
+  $('pickSub').innerHTML = `${flagHTML(c)} ${c.name} · עולם ${W.num} · שלב ${W.stage}/${STG}<br>${sky ? 'שלב תעופה! ממריאים, טסים דרך הטבעות ונוחתים – במה אתה טס?' : 'כל מתחרה נוהג בכלי אחר – במה אתה נוסע?'}`;
   renderPicker(); $('pick').classList.remove('hidden');
 }
 function closePicker() { $('pick').classList.add('hidden'); }
@@ -6657,6 +6788,7 @@ function startLevel(n, snap = null, picked = false) {
   if (document.activeElement) document.activeElement.blur();
   if (!snap) clearSnapshot();
   setupLevel(n);
+  if (game.env.sky) game.jetSpawnT = 22;
   Object.assign(game, { state: 'countdown', time: 0, countdown: 3.6, lastLight: -1, winner: null, won: false, shown: false, resultTimer: 0,
                         shake: 0, acc: 0, prevSp: 0, racePts: 0, distAcc: 0, earn: null, autoNext: null });
   if (snap) {
@@ -6679,7 +6811,7 @@ function startLevel(n, snap = null, picked = false) {
   $('lights').querySelectorAll('i').forEach(i => i.classList.remove('on'));
   const e = game.env, ct = e.city;
   const W = worldOf(n);
-  $('lvl').innerHTML = `${flagHTML(ct)} ${ct.name} · עולם ${W.num}${W.round > 1 ? ` (סבב ${W.round})` : ''} · שלב ${W.stage}/5${e.sea ? ' · 🚤 ים' : ''}${ct.coaster ? ' · 🎢 רכבת הרים' : ''} · ${game.tod.label} · ${Math.round(TR.finishS - TR.startS)} מ'`;
+  $('lvl').innerHTML = `${flagHTML(ct)} ${ct.name} · עולם ${W.num}${W.round > 1 ? ` (סבב ${W.round})` : ''} · שלב ${W.stage}/${STG}${e.sea ? ' · 🚤 ים' : ''}${e.sky ? ' · ✈️ תעופה' : ''}${ct.coaster ? ' · 🎢 רכבת הרים' : ''} · ${game.tod.label} · ${Math.round(TR.finishS - TR.startS)} מ'`;
   Records.data.lastLevel = n; Records.data.lastCity = ct.id; Records.save();
   game.autoSaveT = 6;
   $('best').textContent = fmt(Records.data.best[n]);
@@ -6718,19 +6850,19 @@ let introT = 0;
 function cityIntro(W, ct, n, resumed) {
   if (CLEAN_HUD) return;
   $('wiIcon').innerHTML = flagHTML(ct);
-  $('wiNum').textContent = `${W.icon} עולם ${W.num} – ${W.name}${W.round > 1 ? ` · סבב ${W.round}` : ''} · שלב ${W.stage}/5`;
+  $('wiNum').textContent = `${W.icon} עולם ${W.num} – ${W.name}${W.round > 1 ? ` · סבב ${W.round}` : ''} · שלב ${W.stage}/${STG}`;
   $('wiName').textContent = ct.name;
   $('wiDesc').textContent = resumed ? 'ממשיכים מאיפה שעצרת' : ct.desc;
   $('worldIntro').classList.add('show'); introT = 3.4;
 }
 // מפת העולמות בתפריט: נעול / נוכחי / התקדמות לפי השלבים שהושלמו
 function renderWorldMap() {
-  const ml = Records.data.maxLevel, base = Math.floor((ml - 1) / CITIES.length) * CITIES.length, here = curLevel();
+  const ml = Records.data.maxLevel, PER = WORLDS.length * STG, base = Math.floor((ml - 1) / PER) * PER, here = curLevel();
   $('worlds').innerHTML = WORLDS.map((w, i) => {
-    const first = base + i * 5 + 1, locked = ml < first, cur = here >= first && here < first + 5;
-    const cities = [0, 1, 2, 3, 4].map(k => {
+    const first = base + i * STG + 1, locked = ml < first, cur = here >= first && here < first + STG;
+    const cities = [0, 1, 2, 3, 4, 5].map(k => {
       const n = first + k, c = cityOf(n), st = n === here ? 'here' : n < ml ? 'done' : n > ml ? 'lock' : '';
-      return `<div class="ct ${st}" data-lvl="${n}" title="${c.desc}">${n > ml ? '🔒' : n < ml ? '✅' : flagHTML(c)} ${c.name}${c.coaster ? ' 🎢' : k === 4 ? ' 🚤' : ''}</div>`;
+      return `<div class="ct ${st}" data-lvl="${n}" title="${c.desc}">${n > ml ? '🔒' : n < ml ? '✅' : flagHTML(c)} ${c.name}${k === 5 ? ' ✈️' : c.coaster ? ' 🎢' : k === 4 ? ' 🚤' : ''}</div>`;
     }).join('');
     return `<div class="wcard ${locked ? 'locked' : ''} ${cur ? 'cur' : ''}">
       <div class="ic">${locked ? '🔒' : w.icon}</div><b>עולם ${i + 1}</b>${w.name}<div class="cities">${cities}</div></div>`;
@@ -6781,9 +6913,9 @@ function showResult() {
   const e = game.earn || { race: game.racePts, bonus: 0, place: 0 };
   const earn = `<div class="earn">💰 נקודות מהמרוץ: <b>${e.race}</b> · בונוס מקום ${e.place}: <b>${e.bonus}</b><br>סה"כ ברשותך: <b>${Records.data.points.toLocaleString()}</b></div>`;
   const nextEnv = envFor(game.level + 1), NC = nextEnv.city;
-  const nextTxt = `✈️ העיר הבאה: <b>${flagHTML(NC)} ${NC.name}</b>${nextEnv.sea ? ' – מרוץ סירות בנמל!' : ''}<br><span style="opacity:.8">${NC.desc}</span>`;
+  const nextTxt = `✈️ העיר הבאה: <b>${flagHTML(NC)} ${NC.name}</b>${nextEnv.sea ? ' – מרוץ סירות בנמל!' : nextEnv.sky ? ' – שלב תעופה!' : ''}<br><span style="opacity:.8">${NC.desc}</span>`;
   const W = worldOf(game.level), NW = worldOf(game.level + 1);
-  if (game.won && W.stage === 5) {
+  if (game.won && W.stage === STG) {
     // סוף עולם: מעבר אוטומטי לעולם הבא (ההתקדמות כבר נשמרה)
     if (game.autoNext == null) game.autoNext = 8;
     $('endTitle').textContent = `🌍 עולם ${W.num} – ${W.name} הושלם!`;
@@ -7026,6 +7158,7 @@ function syncMeshes(dt) {
     m.root.rotation.x = -b.pitch;
     m.lean.rotation.z = b.lean + (b.crashed > 0 ? 0 : b.roll || 0);
     for (const w of m.wheels) w.rotation.x += b.speed / 0.38 * dt;
+    if (m.rotors) for (const [o, ax, k] of m.rotors) o.rotation[ax] += 34 * (k || 1) * dt;                 // מדחפים ורוטורים
     if (m.steerW) for (const sw of m.steerW) sw.rotation.y = -b.steer * 0.42;   // גלגלים קדמיים מסתובבים עם ההגה
     m.root.visible = b.ghost > 0 ? Math.floor(b.ghost * 10) % 2 === 0 : true;
     // כנפיים: נפתחות/מתקפלות בהדרגה
@@ -7108,7 +7241,7 @@ function aimView(cam, pl) {
 function camStep(dt, camera, player, game, camLook, main) {
   const sp = Math.abs(player.speed);
   if (dt > 0) { game.acc += ((player.speed - game.prevSp) / dt - game.acc) * Math.min(1, dt * 4); game.prevSp = player.speed; }
-  const fp = main && game.state !== 'menu' && game.cam === 'fp' && player.crashed <= 0 && !player2.p2;   // במסך מפוצל – מבט מאחור לשניכם
+  const fp = main && game.state !== 'menu' && game.cam === 'fp' && !game.env.sky && player.crashed <= 0 && !player2.p2;   // במסך מפוצל – מבט מאחור לשניכם
   if (main) setFP(fp);
   if (game.state === 'menu') {
     game.menuT += dt * 0.15;
