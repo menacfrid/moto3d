@@ -5138,45 +5138,68 @@ const Music = {
     six8: { k: 'x.....x..x..', s: '...x.....x..', h: 'x.xx.xx.xx.x' },
     barcarolle: { k: 'x.....x.....', h: '..x..x..x..x' },
   },
-  // [קצב BPM, תו בסיס (MIDI), סולם, כלי מוביל, תופים, בס, ליווי, אקורדים A, אקורדים B, אפשרויות]
+  // 🎼 סגנונות: לכל שלב סגנון מוזיקלי אחר לגמרי – משקל, קצב, תופים (k בס-תוף, s סנר, h מצילה, c כף, o מצילה פתוחה), בס, ליווי ואורך התווים
+  GEN: {
+    dance:      { bpm: 150, k: 'x...x...x...x...', c: '....x.......x...', o: '..x...x...x...x.', bass: 'bounce', arp: 'up16', gate: .7, duck: 1 },
+    disco:      { bpm: 144, k: 'x...x...x...x...', s: '....x.......x...', h: 'x.xxx.xxx.xxx.xx', o: '..x...x...x...x.', bass: 'bounce', arp: 'stab', gate: .8 },
+    trance:     { bpm: 164, k: 'x...x...x...x...', c: '....x.......x...', h: 'xxxxxxxxxxxxxxxx', bass: 'offbeat', arp: 'up16', gate: 1.0, cap: 6, duck: 1, lead: 'saw' },
+    rock:       { bpm: 158, k: 'x.....x.x.......', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', bass: 'drive', arp: 'pad', gate: .9, cap: 4, lead: 'saw' },
+    surf:       { bpm: 176, k: 'x.....x.x.x.....', s: '....x.......x.x.', h: 'x.x.x.x.x.x.x.x.', bass: 'walk', arp: 'none', gate: .6, lead: 'pluck' },
+    funk:       { bpm: 126, k: 'x..x..x...x..x..', s: '....x..x.x..x...', h: 'x.xxx.xxx.xxx.xx', bass: 'synco', arp: 'stab', gate: .5, lead: 'square' },
+    dnb:        { bpm: 174, k: 'x.........x.....', s: '....x.......x...', h: 'x.x.x.xxx.x.x.xx', bass: 'long', arp: 'up16', gate: .9, cap: 4 },
+    chip:       { bpm: 170, k: 'x.......x.......', s: '....x.......x...', bass: 'bounce', arp: 'up16', gate: .5, lead: 'square' },
+    swing:      { bpm: 172, k: 'x.......x.......', s: '....x.......x...', h: 'x...x.x.x...x.x.', bass: 'walk', arp: 'stab', gate: .85, swing: .33, lead: 'sax' },
+    ska:        { bpm: 166, k: 'x.......x.......', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', bass: 'walk', arp: 'stab', gate: .6, lead: 'sax' },
+    samba:      { bpm: 138, k: 'x..xx..xx..xx..x', s: '..x..x.x..x.x...', h: 'xxxxxxxxxxxxxxxx', bass: 'synco', arp: 'stab', gate: .7, lead: 'flute' },
+    march:      { bpm: 152, k: 'x...x...x...x...', s: 'x.xxx.x.x.xxx.xx', bass: 'oom', arp: 'pad', gate: .8, lead: 'organ' },
+    polka:      { bpm: 162, k: 'x...x...x...x...', s: '..x...x...x...x.', bass: 'oom', arp: 'stab', gate: .6, lead: 'accordion' },
+    oriental:   { bpm: 138, k: 'x.......x.x.....', s: '..x...x.....x...', h: '....x.....x...x.', bass: 'drone', arp: 'none', gate: .85, lead: 'pluck' },
+    tribal:     { bpm: 148, k: 'x..x..x.x..x..x.', s: '............x.x.', h: '..x...x...x...x.', bass: 'synco', arp: 'none', gate: .7 },
+    gallop:     { bpm: 164, k: 'x...x...x...x...', s: '....x.......x...', h: 'x.xxx.xxx.xxx.xx', bass: 'gallop', arp: 'none', gate: .7, lead: 'pluck' },
+    epic:       { bpm: 150, k: 'x..x..x.x..x..x.', s: '....x.......x.xx', bass: 'long', arp: 'pad', gate: 1.0, cap: 8, lead: 'saw' },
+    waltz:      { bpm: 192, S: 12, k: 'x...........', s: '....x...x...', bass: 'oom', arp: 'stab', gate: .8, lead: 'accordion' },
+    tarantella: { bpm: 172, S: 12, sub: 3, k: 'x.....x.....', s: '...x.....x..', h: 'xxxxxxxxxxxx', bass: 'oom', arp: 'stab', gate: .7, lead: 'pluck' },
+    six8:       { bpm: 160, S: 12, sub: 3, k: 'x.....x..x..', s: '...x.....x..', h: 'x.xx.xx.xx.x', bass: 'drive', arp: 'none', gate: .7, lead: 'pluck' },
+  },
+  // [—, תו בסיס (MIDI), סולם, כלי מוביל, —, —, —, אקורדים A, אקורדים B, { g: סגנון, dens: צפיפות הלחן }]
   SONGS: {
-    menu: [128, 60, 'major', 'bell', 'four', 'drive', 'up8', '0M 9m 5M 7M', '5M 0M 2m 7M', { dens: 1.0 }],
-    paris: [196, 60, 'major', 'accordion', 'waltz', 'oom', 'stab', '0M 9m 2m 7M', '5M 0M 2m 7M', { steps: 12, dens: 1.1 }],
-    london: [150, 62, 'major', 'saw', 'march', 'walk', 'pad', '0M 7M 9m 5M', '5M 7M 4m 9m', { dens: 1.1 }],
-    rome: [176, 57, 'harm', 'pluck', 'tarantella', 'oom', 'stab', '0m 0m 7M 0m', '5m 0m 7M 0m', { steps: 12, sub: 3, dens: 1.15 }],
-    moscow: [156, 62, 'harm', 'pluck', 'oompah', 'oom', 'stab', '0m 5m 7M 0m', '8M 3M 5m 7M', { dens: 1.15 }],
-    venice: [150, 67, 'major', 'flute', 'six8', 'drive', 'roll', '0M 4m 5M 7M', '9m 5M 2m 7M', { steps: 12, sub: 3, dens: 1.1 }],
-    nyc: [168, 65, 'mixo', 'sax', 'swing', 'walk', 'stab', '0M 5M 0M 7M', '5M 0M 2m 7M', { swing: .33, dens: 1.1 }],
-    rio: [140, 62, 'major', 'flute', 'samba', 'synco', 'stab', '0M 2m 7M 0M', '5M 4m 2m 7M', { dens: 1.2 }],
-    vegas: [148, 57, 'minor', 'saw', 'four', 'drive', 'up16', '0m 8M 3M 10M', '5m 8M 10M 0m', { dens: 1.1 }],
-    toronto: [150, 67, 'mixo', 'saw', 'rock', 'oom', 'up8', '0M 10M 5M 0M', '5M 0M 10M 7M', { dens: 1.15 }],
-    sf: [146, 64, 'dorian', 'square', 'rock', 'synco', 'stab', '0m 5M 0m 10M', '3M 5M 0m 7m', { dens: 1.1 }],
-    cairo: [138, 62, 'hijaz', 'pluck', 'maqsum', 'drive', 'up8', '0M 1M 0M 10m', '5m 1M 0M 0M', { dens: 1.15 }],
-    dubai: [144, 60, 'dblharm', 'flute', 'four', 'drive', 'up16', '0M 1M 5m 0M', '8M 1M 0M 0M', { dens: 1.1 }],
-    istanbul: [152, 64, 'phryg', 'pluck', 'baladi', 'oom', 'up8', '0m 1M 10m 0m', '3M 1M 10m 0m', { dens: 1.2 }],
-    marrakech: [164, 57, 'pentMin', 'pluck', 'six8', 'drive', 'none', '0m 10M 0m 7m', '5m 0m 10M 0m', { steps: 12, sub: 3, low: 1, dens: 1.1 }],
-    telaviv: [164, 64, 'minor', 'square', 'oompah', 'oom', 'stab', '0m 7M 0m 5m', '3M 10M 0m 7M', { dens: 1.15 }],
-    agra: [140, 61, 'dblharm', 'sitar', 'tabla', 'drive', 'none', '0p 0p 0p 0p', '5m 0p 1M 0p', { dens: 1.2 }],
-    beijing: [144, 62, 'pentMaj', 'pluck', 'rock', 'drive', 'up8', '0M 9m 0M 7p', '9m 0M 2s 7p', { dens: 1.1 }],
-    tokyo: [172, 64, 'pentMin', 'bell', 'four', 'drive', 'up16', '0m 8M 10M 0m', '5m 3M 8M 10M', { dens: 1.1 }],
-    singapore: [150, 65, 'lydian', 'bell', 'four', 'drive', 'up16', '0M 2M 0M 7M', '9m 2M 4m 7M', { dens: 1.1 }],
-    sydney: [172, 64, 'major', 'square', 'rock', 'drive', 'up8', '0M 5M 7M 5M', '9m 5M 0M 7M', { dens: 1.1 }],
-    amazon: [146, 62, 'pentMin', 'flute', 'tribal', 'synco', 'up8', '0m 0m 10M 0m', '5m 0m 3M 10M', { dens: 1.1 }],
-    yucatan: [150, 64, 'hijaz', 'pluck', 'latin', 'synco', 'stab', '5m 3M 1M 0M', '0M 1M 3M 1M', { dens: 1.15 }],
-    congo: [156, 67, 'pentMaj', 'bell', 'afro', 'synco', 'up8', '0M 7M 5M 7M', '5M 0M 7M 0M', { dens: 1.25 }],
-    angkor: [140, 62, 'pelog', 'bell', 'tribal', 'synco', 'up8', '0p 0p 1M 0p', '8M 0p 1M 0p', { dens: 1.1 }],
-    borneo: [150, 60, 'susPent', 'flute', 'tribal', 'synco', 'up8', '0s 7s 5M 0s', '9m 5M 7s 0s', { dens: 1.1 }],
-    cyclone: [184, 60, 'major', 'organ', 'oompah', 'oom', 'stab', '0M 7M 7M 0M', '5M 0M 7M 0M', { dens: 1.2 }],
-    dragon: [168, 62, 'minor', 'saw', 'rock', 'drive', 'pad', '0m 10M 8M 7M', '3M 10M 8M 7M', { dens: 1.1 }],
-    neonloop: [176, 57, 'minor', 'saw', 'four', 'drive', 'up16', '0m 3M 10M 5m', '8M 10M 0m 0m', { dens: 1.05 }],
-    frost: [200, 67, 'major', 'bell', 'waltz', 'oom', 'roll', '0M 4m 5M 7M', '9m 4m 5M 7M', { steps: 12, dens: 1.1 }],
-    sky1: [168, 62, 'major', 'saw', 'four', 'drive', 'up16', '0M 7M 9m 5M', '5M 7M 0M 7M', { dens: 1.1 }],
-    sky2: [160, 64, 'mixo', 'square', 'rock', 'drive', 'up8', '0M 10M 5M 0M', '5M 10M 0M 7M', { dens: 1.15 }],
-    sky3: [172, 57, 'hijaz', 'saw', 'four', 'drive', 'up16', '0M 1M 0M 10m', '5m 1M 0M 0M', { dens: 1.1 }],
-    sky4: [176, 64, 'pentMin', 'bell', 'four', 'drive', 'up16', '0m 10M 8M 10M', '5m 8M 10M 0m', { dens: 1.1 }],
-    sky5: [164, 62, 'dorian', 'flute', 'afro', 'synco', 'up8', '0m 5M 0m 10M', '3M 10M 0m 7m', { dens: 1.2 }],
-    sky6: [184, 60, 'lydian', 'organ', 'four', 'drive', 'up16', '0M 2M 0M 7M', '9m 2M 4m 7M', { dens: 1.15 }],
-    canyon: [164, 64, 'dorian', 'pluck', 'gallop', 'gallop', 'up8', '0m 10M 5M 0m', '3M 10M 0m 7M', { dens: 1.1 }],
+    menu: [128, 60, 'major', 'bell', 'four', 'drive', 'up8', '0M 9m 5M 7M', '5M 0M 2m 7M', { g: 'dance', dens: 1.0 }],
+    paris: [196, 60, 'major', 'accordion', 'waltz', 'oom', 'stab', '0M 9m 2m 7M', '5M 0M 2m 7M', { g: 'waltz', dens: 1.1 }],
+    london: [150, 62, 'major', 'saw', 'march', 'walk', 'pad', '0M 7M 9m 5M', '5M 7M 4m 9m', { g: 'march', dens: 1.1 }],
+    rome: [176, 57, 'harm', 'pluck', 'tarantella', 'oom', 'stab', '0m 0m 7M 0m', '5m 0m 7M 0m', { g: 'tarantella', dens: 1.15 }],
+    moscow: [156, 62, 'harm', 'pluck', 'oompah', 'oom', 'stab', '0m 5m 7M 0m', '8M 3M 5m 7M', { g: 'polka', dens: 1.15 }],
+    venice: [150, 67, 'major', 'flute', 'six8', 'drive', 'roll', '0M 4m 5M 7M', '9m 5M 2m 7M', { g: 'disco', dens: 1.1 }],
+    nyc: [168, 65, 'mixo', 'sax', 'swing', 'walk', 'stab', '0M 5M 0M 7M', '5M 0M 2m 7M', { g: 'swing', dens: 1.1 }],
+    rio: [140, 62, 'major', 'flute', 'samba', 'synco', 'stab', '0M 2m 7M 0M', '5M 4m 2m 7M', { g: 'samba', dens: 1.2 }],
+    vegas: [148, 57, 'minor', 'saw', 'four', 'drive', 'up16', '0m 8M 3M 10M', '5m 8M 10M 0m', { g: 'dance', dens: 1.1 }],
+    toronto: [150, 67, 'mixo', 'saw', 'rock', 'oom', 'up8', '0M 10M 5M 0M', '5M 0M 10M 7M', { g: 'rock', dens: 1.15 }],
+    sf: [146, 64, 'dorian', 'square', 'rock', 'synco', 'stab', '0m 5M 0m 10M', '3M 5M 0m 7m', { g: 'funk', dens: 1.1 }],
+    cairo: [138, 62, 'hijaz', 'pluck', 'maqsum', 'drive', 'up8', '0M 1M 0M 10m', '5m 1M 0M 0M', { g: 'oriental', dens: 1.15 }],
+    dubai: [144, 60, 'dblharm', 'flute', 'four', 'drive', 'up16', '0M 1M 5m 0M', '8M 1M 0M 0M', { g: 'trance', dens: 1.1 }],
+    istanbul: [152, 64, 'phryg', 'pluck', 'baladi', 'oom', 'up8', '0m 1M 10m 0m', '3M 1M 10m 0m', { g: 'ska', dens: 1.2 }],
+    marrakech: [164, 57, 'pentMin', 'pluck', 'six8', 'drive', 'none', '0m 10M 0m 7m', '5m 0m 10M 0m', { g: 'six8', low: 1, dens: 1.1 }],
+    telaviv: [164, 64, 'minor', 'square', 'oompah', 'oom', 'stab', '0m 7M 0m 5m', '3M 10M 0m 7M', { g: 'polka', dens: 1.15 }],
+    agra: [140, 61, 'dblharm', 'sitar', 'tabla', 'drive', 'none', '0p 0p 0p 0p', '5m 0p 1M 0p', { g: 'tribal', dens: 1.2 }],
+    beijing: [144, 62, 'pentMaj', 'pluck', 'rock', 'drive', 'up8', '0M 9m 0M 7p', '9m 0M 2s 7p', { g: 'chip', dens: 1.1 }],
+    tokyo: [172, 64, 'pentMin', 'bell', 'four', 'drive', 'up16', '0m 8M 10M 0m', '5m 3M 8M 10M', { g: 'dnb', dens: 1.1 }],
+    singapore: [150, 65, 'lydian', 'bell', 'four', 'drive', 'up16', '0M 2M 0M 7M', '9m 2M 4m 7M', { g: 'dance', dens: 1.1 }],
+    sydney: [172, 64, 'major', 'square', 'rock', 'drive', 'up8', '0M 5M 7M 5M', '9m 5M 0M 7M', { g: 'surf', dens: 1.1 }],
+    amazon: [146, 62, 'pentMin', 'flute', 'tribal', 'synco', 'up8', '0m 0m 10M 0m', '5m 0m 3M 10M', { g: 'tribal', dens: 1.1 }],
+    yucatan: [150, 64, 'hijaz', 'pluck', 'latin', 'synco', 'stab', '5m 3M 1M 0M', '0M 1M 3M 1M', { g: 'samba', dens: 1.15 }],
+    congo: [156, 67, 'pentMaj', 'bell', 'afro', 'synco', 'up8', '0M 7M 5M 7M', '5M 0M 7M 0M', { g: 'funk', dens: 1.25 }],
+    angkor: [140, 62, 'pelog', 'bell', 'tribal', 'synco', 'up8', '0p 0p 1M 0p', '8M 0p 1M 0p', { g: 'epic', dens: 1.1 }],
+    borneo: [150, 60, 'susPent', 'flute', 'tribal', 'synco', 'up8', '0s 7s 5M 0s', '9m 5M 7s 0s', { g: 'ska', dens: 1.1 }],
+    cyclone: [184, 60, 'major', 'organ', 'oompah', 'oom', 'stab', '0M 7M 7M 0M', '5M 0M 7M 0M', { g: 'polka', dens: 1.2 }],
+    dragon: [168, 62, 'minor', 'saw', 'rock', 'drive', 'pad', '0m 10M 8M 7M', '3M 10M 8M 7M', { g: 'epic', dens: 1.1 }],
+    neonloop: [176, 57, 'minor', 'saw', 'four', 'drive', 'up16', '0m 3M 10M 5m', '8M 10M 0m 0m', { g: 'trance', dens: 1.05 }],
+    frost: [200, 67, 'major', 'bell', 'waltz', 'oom', 'roll', '0M 4m 5M 7M', '9m 4m 5M 7M', { g: 'waltz', dens: 1.1 }],
+    sky1: [168, 62, 'major', 'saw', 'four', 'drive', 'up16', '0M 7M 9m 5M', '5M 7M 0M 7M', { g: 'trance', dens: 1.1 }],
+    sky2: [160, 64, 'mixo', 'square', 'rock', 'drive', 'up8', '0M 10M 5M 0M', '5M 10M 0M 7M', { g: 'dnb', dens: 1.15 }],
+    sky3: [172, 57, 'hijaz', 'saw', 'four', 'drive', 'up16', '0M 1M 0M 10m', '5m 1M 0M 0M', { g: 'chip', dens: 1.1 }],
+    sky4: [176, 64, 'pentMin', 'bell', 'four', 'drive', 'up16', '0m 10M 8M 10M', '5m 8M 10M 0m', { g: 'gallop', dens: 1.1 }],
+    sky5: [164, 62, 'dorian', 'flute', 'afro', 'synco', 'up8', '0m 5M 0m 10M', '3M 10M 0m 7m', { g: 'swing', dens: 1.2 }],
+    sky6: [184, 60, 'lydian', 'organ', 'four', 'drive', 'up16', '0M 2M 0M 7M', '9m 2M 4m 7M', { g: 'disco', dens: 1.15 }],
+    canyon: [164, 64, 'dorian', 'pluck', 'gallop', 'gallop', 'up8', '0m 10M 5M 0m', '3M 10M 0m 7M', { g: 'gallop', dens: 1.1 }],
   },
   rng(seed) { let a = seed | 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; },
 
@@ -5184,8 +5207,9 @@ const Music = {
   compose(id) {
     if (this.cache[id]) return this.cache[id];
     const d = this.SONGS[id]; if (!d) return null;
-    const [bpm, root, scaleName, lead, drum, bass, arp, pA, pB, o] = d;
-    const S = o.steps || 16, sub = o.sub || 4, sc = this.SCALES[scaleName], n = sc.length, dens = o.dens || 1;
+    const [, root, scaleName, lead0, , , , pA, pB, o] = d, G = this.GEN[o.g] || this.GEN.dance;
+    const bpm = G.bpm, bass = G.bass, arp = G.arp, lead = G.lead && !['bell', 'sitar'].includes(lead0) ? G.lead : lead0;
+    const S = G.S || 16, sub = G.sub || 4, sc = this.SCALES[scaleName], n = sc.length, dens = o.dens || 1;
     let h = 7; for (const ch of id) h = Math.imul(h, 31) + ch.charCodeAt(0) | 0;
     const R = this.rng(h);
     const parse = s => s.split(' ').map(c => { const q = c.slice(-1), r = +c.slice(0, -1); return { r, pcs: this.QUAL[q].map(x => (r + x) % 12), q }; });
@@ -5213,7 +5237,7 @@ const Music = {
           if (last) p = near(p, ch, [ch.pcs[0], ch.pcs[prog === A ? 0 : 1]]);
           else if (j > 0 && s % (sub * 2) === 0) p = near(p, ch);
           const nx = j + 1 < rr.length ? rr[j + 1] : S;
-          notes.push({ s, m: root + semi(p), d: last ? S - s - sub * .5 : Math.max(.8, Math.min(2.4, (nx - s) * .7)) });   // תווים קצרים וקופצניים
+          notes.push({ s, m: root + semi(p), d: last ? S - s - sub * .5 : Math.max(.8, Math.min(G.cap || 2.6, (nx - s) * G.gate)) });   // תווים קצרים וקופצניים
         });
         bars.push(notes); endP.push(p);
       }
@@ -5222,7 +5246,7 @@ const Music = {
     const P1 = phrase(A, .8 * dens, 0), P1b = phrase(A, .8 * dens, 0, P1), P2 = phrase(B, .95 * dens, 2), P3 = phrase(A, .7 * dens, 3);
     // מבנה השיר: A A' B A' | C(משפט גבוה) B A A' – הכול בקצב מלא, בלי הפוגות שקטות
     const form = [[P1, A, 1], [P1b, A, 1], [P2, B, 1], [P1b, A, 1], [P3, A, 1], [P2, B, 1], [P1, A, 1], [P1b, A, 2]];
-    const D = this.DRUMS[drum] || {}, ev = [], bassM = r => { let m = root + r; while (m >= 50) m -= 12; while (m < 38) m += 12; return m; };
+    const D = G, ev = [], bassM = r => { let m = root + r; while (m >= 50) m -= 12; while (m < 38) m += 12; return m; };
     const beats = S / sub;
     form.forEach(([ph, prog, full], sec) => {
       for (let b = 0; b < 4; b++) {
@@ -5231,17 +5255,18 @@ const Music = {
         ph.bars[b].forEach(x => push(x.s, 'l', x.m, x.d, 1));
         // תופים (בהפוגה – רק מצילות; בתיבה האחרונה של השיר – מעבר)
         for (let s = 0; s < S; s++) {
-          if (s % sub === 0 || (D.k && D.k[s] === 'x')) push(s, 'k', 0, 1, s % sub === 0 ? 1 : .7);     // 🕺 קצב מקפיץ: בס-תוף על כל פעימה
-          if (s % sub === 0 && (s / sub) % 2 === 1) push(s, 'c', 0, 1, 1);                              // מחיאת כף על הפעימות הזוגיות
-          if (s % sub === 2) push(s, 'o', 0, 1, 1);                                                     // מצילה פתוחה בין הפעימות
-          if (full && D.s && D.s[s] === 'x') push(s, 's', 0, 1, 1);
-          if (D.h && D.h[s] === 'x') push(s, 'h', 0, 1, full ? 1 : .6);
+          if (D.k && D.k[s] === 'x') push(s, 'k', 0, 1, 1);
+          if (D.s && D.s[s] === 'x') push(s, 's', 0, 1, s % sub === 0 ? 1 : .6);
+          if (D.h && D.h[s] === 'x') push(s, 'h', 0, 1, s % sub === 0 ? 1 : .7);
+          if (D.c && D.c[s] === 'x') push(s, 'c', 0, 1, 1);
+          if (D.o && D.o[s] === 'x') push(s, 'o', 0, 1, 1);
           if (full === 2 && b === 3 && D.k && s >= S - sub) push(s, 's', 0, 1, .5 + .5 * (s - S + sub) / sub);
         }
         // בס
         const bm = bassM(ch.r), fifth = bm + 7, third = bm + (ch.q === 'm' ? 3 : ch.q === 'M' ? 4 : 7);
-        const bs = 'bounce';
-        if (bs === 'bounce') for (let s = 0; s < S; s += sub) { push(s, 'b', bm, sub * .45, 1); push(s + 2, 'b', bm + 12, sub * .4, .8); }   // בס קופץ: תו נמוך על הפעימה, אוקטבה מעליו באמצע
+        const bs = bass;
+        if (bs === 'offbeat') for (let s = 2; s < S; s += sub) push(s, 'b', bm, sub * .45, 1);                // בס רק בין הפעימות
+        else if (bs === 'bounce') for (let s = 0; s < S; s += sub) { push(s, 'b', bm, sub * .45, 1); push(s + 2, 'b', bm + 12, sub * .4, .8); }   // בס קופץ: תו נמוך על הפעימה, אוקטבה מעליו באמצע
         else if (bs === 'long' || bs === 'drone') { push(0, 'b', bm, S * .96, 1); if (bs === 'drone') push(0, 'b', fifth, S * .96, .5); }
         else if (bs === 'oom') { push(0, 'b', bm, sub * .85, 1); if (!(S === 12 && sub === 4)) for (let k = 2; k < beats; k += 2) push(k * sub, 'b', k % 4 === 2 ? (fifth - 12 >= 36 ? fifth - 12 : fifth) : bm, sub * .85, 1); }
         else if (bs === 'walk') [bm, third, fifth, b % 2 ? fifth + 2 : third].forEach((m, k) => k < beats && push(k * sub, 'b', m, sub * .85, 1));
@@ -5260,7 +5285,7 @@ const Music = {
         }
       }
     });
-    return this.cache[id] = { id, ev, len: ev.length, dt: 60 / bpm / sub, lead, swing: o.swing || 0, sub };
+    return this.cache[id] = { id, ev, len: ev.length, dt: 60 / bpm / sub, lead, swing: G.swing || 0, sub, duck: !!G.duck };
   },
 
   // ---- סינתזה ----
@@ -5325,7 +5350,7 @@ const Music = {
       const sw = sg.swing && sg.sub === 4 && this.step % 4 === 2 ? sg.swing * sg.dt * 2 : 0, t = this.next + sw;
       for (const e of sg.ev[this.step]) {
         if (L[e.t]) this.tone(t, e.m, e.d * sg.dt, L[e.t][0], L[e.t][1] * e.v);
-        else { this.drum(t, e.t, e.v); if (e.t === 'k' && e.v === 1) { this.duck.gain.setValueAtTime(.45, t); this.duck.gain.linearRampToValueAtTime(1, t + sg.dt * sg.sub * .75); } }
+        else { this.drum(t, e.t, e.v); if (sg.duck && e.t === 'k') { this.duck.gain.setValueAtTime(.45, t); this.duck.gain.linearRampToValueAtTime(1, t + sg.dt * sg.sub * .75); } }
       }
       this.step = (this.step + 1) % sg.len; this.next += sg.dt;
     }
