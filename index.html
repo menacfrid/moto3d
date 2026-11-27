@@ -203,7 +203,7 @@
       ⚓ בשלבי הים בוחרים: סירה · ספינת קרב · ספינת שודדים – והמסלול בים ובאוויר רחב יותר<br>
       🚦 לפני כל שלב בוחרים כלי רכב: מכונית · משאית · טנק · אוטובוס · קולנועית · ג'יפ<br>
       <kbd>↑</kbd>/<kbd>W</kbd> גז &nbsp; <kbd>↓</kbd>/<kbd>S</kbd> בלם &nbsp; <kbd>←</kbd><kbd>→</kbd> היגוי<br>
-      <kbd>Space</kbd> טיל קדימה · <kbd>B</kbd> מוקש אחורה · <kbd>C</kbd> מצלמה · <kbd>G</kbd> / קליק: הפעלת תותח אוטומטי (Apex) – לחיצה אחת ויורה כל המשחק<br>
+      <kbd>Space</kbd> טיל קדימה · <kbd>B</kbd> מוקש אחורה · <kbd>C</kbd> כניסה לתוך הכלי / מבט מבחוץ · <kbd>G</kbd> / קליק: הפעלת תותח אוטומטי (Apex) – לחיצה אחת ויורה כל המשחק<br>
       ⚡ לייזרים · 🕳️ בורות · ✅ נקודות ביקורת – נפילה לא מאפסת את השלב<br>
       🪙 אספו מטבעות · 🔄 לולאות (צריך מהירות!) · 🛫 רמפות קפיצה<br>
       🎵 מנגינה אחרת בכל עיר · <kbd>N</kbd> מוזיקה פועלת/כבויה · <kbd>M</kbd> השתקת כל הצלילים<br>
@@ -4641,9 +4641,9 @@ function carCockpit(M, model, EYE) {
   const beam = (a, b, r, mat) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, a.distanceTo(b), 8), mat);
     m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(Y_AXIS, _v.copy(b).sub(a).normalize()); cp.add(m); return m; };
   // מכסה המנוע – נראה מבעד לשמשה
-  add(new THREE.BoxGeometry(2 * W - 0.1, 0.16, 1.5), M.paint, 0, 0.8, 1.35).rotation.x = 0.09;
-  if (model.accent != null) add(new THREE.BoxGeometry(0.42, 0.02, 1.5), M.accent, 0, 0.89, 1.35).rotation.x = 0.09;
-  for (const sd of [-1, 1]) add(new THREE.BoxGeometry(0.34, 0.12, 0.9), M.paint, sd * (W - 0.2), 0.9, 1.45).rotation.x = 0.09;   // קשתות גלגלים קדמיות
+  if (!model.noHood) add(new THREE.BoxGeometry(2 * W - 0.1, 0.16, 1.5), M.paint, 0, 0.8, 1.35).rotation.x = 0.09;
+  if (!model.noHood && model.accent != null) add(new THREE.BoxGeometry(0.42, 0.02, 1.5), M.accent, 0, 0.89, 1.35).rotation.x = 0.09;
+  if (!model.noHood) for (const sd of [-1, 1]) add(new THREE.BoxGeometry(0.34, 0.12, 0.9), M.paint, sd * (W - 0.2), 0.9, 1.45).rotation.x = 0.09;   // קשתות גלגלים קדמיות
   // לוח מחוונים
   add(new THREE.BoxGeometry(1.7 * W, 0.14, 0.42), M.carbon, 0, 0.79, 0.42);
   add(new THREE.BoxGeometry(1.7 * W, 0.03, 0.1), M.paint, 0, 0.87, 0.6);
@@ -4668,6 +4668,51 @@ function carCockpit(M, model, EYE) {
   for (const sd of [-1, 1]) add(new THREE.BoxGeometry(0.06, 0.09, 0.05), M.glove, sd * 0.155, 0.02, 0.02, spin);
   for (const sd of [-1, 1]) forearm(cp, M, new THREE.Vector3(sd * 0.15, 0.81, -0.01), new THREE.Vector3(sd * 0.25, 0.93, -0.5), new THREE.Vector3());
   return { cp, bars: spin };
+}
+
+// ✈️ תא טייס לכלי הטיס (מקש C): לוח מחוונים, מוט היגוי וחלקי הכלי שרואים מבפנים
+function airCockpit(M, EYE, type) {
+  const cp = new THREE.Group(), ey = EYE.y, ez = EYE.z;
+  const add = (geo, mat, x, y, z, parent = cp) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
+  const box = (w, h, d, mat, x, y, z) => add(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
+  let bars = null;
+  if (type !== 'drone') {
+    box(1.2, 0.26, 0.3, M.carbon, 0, ey - 0.47, ez + 0.72);
+    const dash = new THREE.Group(); dash.position.set(0.22, ey - 0.3, ez + 0.6); cp.add(dash); dash.lookAt(EYE);
+    add(new THREE.BoxGeometry(0.25, 0.135, 0.04), M.carbon, 0, 0, -0.025, dash);
+    add(new THREE.PlaneGeometry(0.21, 0.105), dashMat, 0, 0, 0, dash);
+    bars = new THREE.Group(); bars.position.set(0, ey - 0.52, ez + 0.42); cp.add(bars);
+    add(new THREE.CylinderGeometry(0.02, 0.025, 0.3, 8), M.alu, 0, 0.12, 0, bars);
+    add(new THREE.BoxGeometry(0.07, 0.11, 0.07), M.rubber, 0, 0.3, 0, bars);
+  }
+  if (type === 'plane') {
+    box(0.85, 0.25, 1.9, M.paint, 0, 1.05, 1.6);                                    // חרטום
+    box(5.4, 0.09, 1.15, M.paint, 0, 0.95, 0.15);                                   // כנפיים
+  } else if (type === 'heli') {
+    box(1.3, 0.2, 0.9, M.paint, 0, 0.98, 1.75);                                     // אף המסוק
+    box(0.05, 1.2, 0.05, M.carbon, 0, ey + 0.1, ez + 0.95); box(1.7, 0.06, 0.06, M.carbon, 0, ey + 0.55, ez + 0.9);   // מסגרת השמשה
+    for (const sd of [-1, 1]) box(0.05, 1.2, 0.05, M.carbon, sd * 0.84, ey + 0.1, ez + 0.6);
+  } else if (type === 'drone') {
+    for (const a of [1, -1]) box(3.3, 0.12, 0.2, M.carbon, 0, 1.0, 0).rotation.y = a * Math.PI / 4;   // זרועות הרחפן (מבט מצלמה)
+    for (const sx of [-1, 1]) add(new THREE.TorusGeometry(0.58, 0.045, 6, 20).rotateX(Math.PI / 2), M.accent, sx * 1.1, 1.3, 1.1);
+  } else {
+    add(new THREE.CylinderGeometry(1.15, 2.15, 0.38, 24), M.paint, 0, 1.12, 0);     // שולי הצלחת המעופפת
+    for (const sd of [-1, 1]) box(0.05, 0.9, 0.05, M.carbon, sd * 1.0, ey + 0.05, ez + 0.75).rotation.z = -sd * 0.35;
+  }
+  return { cp, bars };
+}
+// 🛵 קולנועית מבפנים: כידון, מוט היגוי וסל
+function scooterCockpit(M) {
+  const cp = new THREE.Group();
+  const add = (geo, mat, x, y, z, parent = cp) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
+  add(new THREE.BoxGeometry(0.84, 0.5, 0.54), M.paint, 0, 0.6, 0.86);
+  add(new THREE.BoxGeometry(0.54, 0.3, 0.34), M.carbon, 0, 1.14, 1.14);
+  add(new THREE.BoxGeometry(0.08, 1.1, 0.08), M.metal, 0, 1.15, 0.72).rotation.x = -0.28;
+  const bars = new THREE.Group(); bars.position.set(0, 1.7, 0.6); cp.add(bars);
+  add(new THREE.BoxGeometry(0.72, 0.07, 0.07), M.black, 0, 0, 0, bars);
+  add(new THREE.BoxGeometry(0.3, 0.12, 0.18), M.carbon, 0, 0, 0.03, bars);
+  for (const sd of [-1, 1]) add(new THREE.BoxGeometry(0.09, 0.1, 0.12), M.glove, sd * 0.33, 0.02, -0.03, bars);
+  return { cp, bars };
 }
 
 function boatCockpit(M, EYE) {
@@ -4706,7 +4751,7 @@ function makeBody(type, add, tp, lean, M) {
     wheels.push(t); if (front) steerW.push(piv);
   };
   const lights = (p, x, yF, zF, yR, zR) => { for (const sd of [-1, 1]) { box(p, .4, .14, .06, glow(0xfff6d0, 2), sd * x, yF, zF); box(p, .4, .12, .06, glow(0xff2020, 1.6), sd * x, yR, zR); } };
-  let eyeY = 1.13, wingY = 1.3;
+  let eyeY = 1.13, eyeZ = -.6, wingY = 1.3;
   if (type === 'truck') {
     box(tp, 1.9, .28, 4.9, M.carbon, 0, .72, 0);                          // שלדה
     box(tp, 2.0, 1.3, 1.35, M.paint, 0, 1.5, 1.7);                        // תא נהג
@@ -4784,7 +4829,7 @@ function makeBody(type, add, tp, lean, M) {
     wheel(lean, 0, 1.6, .2, .12, true);
     const prop = new THREE.Group(); prop.position.set(0, 1.05, 2.62); lean.add(prop); rotors.push([prop, 'z']);
     box(prop, 1.9, .16, .04, M.carbon, 0, 0, 0); box(prop, .16, 1.9, .04, M.carbon, 0, 0, 0);
-    eyeY = 1.5; wingY = 1.7;
+    eyeY = 1.5; eyeZ = .45; wingY = 1.7;
   } else if (type === 'heli') {                                           // 🚁 מסוק: תא, זנב, רוטור ראשי ורוטור זנב מסתובבים
     box(tp, 1.7, 1.35, 2.3, M.paint, 0, 1.35, .3);
     box(tp, 1.5, .8, .9, tint, 0, 1.5, 1.6);
@@ -4802,7 +4847,7 @@ function makeBody(type, add, tp, lean, M) {
     const tr = new THREE.Group(); tr.position.set(.14, 1.9, -3.3); lean.add(tr); rotors.push([tr, 'x']);
     box(tr, .03, 1.1, .13, M.carbon, 0, 0, 0); box(tr, .03, .13, 1.1, M.carbon, 0, 0, 0);
     lights(lean, .5, .85, 2.06, 1.3, -.86);
-    eyeY = 1.6; wingY = 2.7;
+    eyeY = 1.55; eyeZ = .85; wingY = 2.7;
   } else if (type === 'drone') {                                          // 🛸 רחפן: 4 זרועות, 4 מדחפים מסתובבים, מצלמה
     box(tp, 1.2, .36, 1.7, M.paint, 0, 1.0, 0);
     box(tp, .8, .2, 1.05, M.accent, 0, 1.27, 0);
@@ -4817,7 +4862,7 @@ function makeBody(type, add, tp, lean, M) {
       box(tp, .06, .6, .06, M.metal, sx * .5, .55, sz * .65);
       box(lean, .14, .1, .14, glow(sz > 0 ? 0xfff6d0 : 0xff2020, 2), x, 1.0, z + sz * .2);
     }
-    eyeY = 1.5; wingY = 1.7;
+    eyeY = .98; eyeZ = 1.25; wingY = 1.7;
   } else if (type === 'ship') {                                           // 🛸 חללית: צלחת מעופפת עם כיפה, טבעת אורות מסתובבת ומנועים מאחור
     add(tp, new THREE.CylinderGeometry(1.15, 2.15, .38, 24), M.paint, 0, 1.12, 0);
     add(tp, new THREE.CylinderGeometry(2.15, 1.0, .32, 24), M.accent, 0, .77, 0);
@@ -4831,7 +4876,7 @@ function makeBody(type, add, tp, lean, M) {
       add(lean, new THREE.ConeGeometry(.18, .7, 10).rotateX(-Math.PI / 2), glow(0xff8a2a, 2.5), sd * .7, 1.0, -2.7);
     }
     box(lean, .5, .1, .08, glow(0xfff6d0, 2), 0, 1.0, 2.12);
-    eyeY = 1.5; wingY = 2.2;
+    eyeY = 1.65; eyeZ = .1; wingY = 2.2;
   } else {                                                                // 🛵 קולנועית: 4 גלגלים קטנים, מושב עם משענת, מוט היגוי וסל
     const g = new THREE.Group(), gw = new THREE.Group(); g.scale.setScalar(1.2); gw.scale.setScalar(1.2); tp.add(g); lean.add(gw);
     box(g, .8, .12, 1.7, M.paint, 0, .3, 0);
@@ -4847,9 +4892,9 @@ function makeBody(type, add, tp, lean, M) {
     addRider(add, g, M, -.17, -.45);
     box(gw, .22, .1, .05, glow(0xfff6d0, 2), 0, .62, .96);
     for (const sd of [-1, 1]) { box(gw, .12, .08, .05, glow(0xff2020, 1.6), sd * .28, .5, -.86); wheel(gw, sd * .36, .68, .2, .12, true); wheel(gw, sd * .36, -.68, .2, .12); }
-    eyeY = 1.45; wingY = 1.55;
+    eyeY = 1.8; eyeZ = -.65; wingY = 1.55;
   }
-  return { wheels, steerW, rotors, eye: new THREE.Vector3(0, eyeY, -.6), wingY };
+  return { wheels, steerW, rotors, eye: new THREE.Vector3(0, eyeY, eyeZ), wingY };
 }
 // ⚓ ספינות לשלבי הים: ספינת קרב וספינת שודדים (הגוף הנמוך נשאר גלוי גם במבט מתא ההגאי; המבנים הגבוהים – לא)
 function makeShip(type, add, tp, lean, M, rotors, human) {
@@ -4917,7 +4962,14 @@ function makeVehicle(b, kind) {
       add(lean, new THREE.CylinderGeometry(0.055, 0.055, 1.0, 10), M.metal, sd * 0.55, eye.y - 0.25, 2.0, Math.PI / 2);
       add(lean, new THREE.CylinderGeometry(0.07, 0.07, 0.08, 10), gunMuzzle, sd * 0.55, eye.y - 0.25, 2.52, Math.PI / 2);
     }
-    if (b.isPlayer && !isAir(body)) { ({ cp, bars } = carCockpit(M, model || {}, new THREE.Vector3(0, 1.13, -0.6))); cp.position.y = eye.y - 1.13; }   // תא נהג בגובה הכלי
+    if (b.isPlayer) {                                                                              // 🎥 מקש C: נכנסים לתוך כל כלי – תא נהג / תא טייס משלו
+      if (isAir(body)) ({ cp, bars } = airCockpit(M, eye, body));
+      else if (body === 'scooter') ({ cp, bars } = scooterCockpit(M));
+      else {
+        ({ cp, bars } = carCockpit(M, { ...(model || {}), noHood: body === 'bus' }, new THREE.Vector3(0, 1.13, -0.6))); cp.position.y = eye.y - 1.13;   // תא נהג בגובה הכלי
+        if (body === 'tank') { const g = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 2.6, 12).rotateX(Math.PI / 2), M.metal); g.position.set(0, 0.92, 2.0); cp.add(g); }   // קנה התותח מלפנים
+      }
+    }
   } else if (kind === 'bike') {
     // 🏎️ מכונית מרוץ: שלדה נמוכה ורחבה, תא נהג משופע, כנף אחורית ו-4 גלגלים (הקדמיים מסתובבים עם ההגה)
     const wide = (model && model.wide) || 1, W = wide;
@@ -5006,7 +5058,13 @@ function makeVehicle(b, kind) {
     const dome = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2),
       new THREE.MeshStandardMaterial({ color: 0x9ad8ff, transparent: true, opacity: 0.28, roughness: 0.05, metalness: 0.3, side: THREE.DoubleSide, depthWrite: false }));
     dome.position.set(0, 0.95, -0.35); dome.scale.set(0.85, 0.85, 1.5); dome.visible = false; lean.add(dome); domeRef = dome;
-    if (b.isPlayer) ({ cp, bars } = boatCockpit(M, eye));
+    if (b.isPlayer) {
+      ({ cp, bars } = boatCockpit(M, eye));
+      const cadd = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); cp.add(m); return m; };
+      if (ship === 'warship') for (const sx of [-0.11, 0.11]) cadd(new THREE.CylinderGeometry(0.05, 0.05, 1.1, 10).rotateX(Math.PI / 2), M.metal, sx, 1.05, 1.95);   // קני הצריח הקדמי
+      if (ship === 'pirate') { const w = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: .7 });                                                         // תורן קדמי ומוט החרטום
+        cadd(new THREE.CylinderGeometry(0.07, 0.07, 2.7, 10), w, 0, 2.15, 1.3); cadd(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 10).rotateX(Math.PI / 2), w, 0, 1.15, 2.9).rotation.x = -0.25; }
+    }
   }
   // כנפיים מתקפלות (מצב דאייה): שתי כנפיים משוכות + זנב, נפתחות כשעפים מגשר/גג
   const wings = new THREE.Group(), wingPivots = [];
@@ -7293,7 +7351,7 @@ function updateLampLights() {
 
 function setCamMode(mode) {
   game.cam = mode; Records.data.cam = mode; Records.save();
-  if (game.state !== 'menu') toast(mode === 'fp' ? '🎥 מבט גוף ראשון' : '🎥 מבט מאחורי המכונית', 1.2);
+  if (game.state !== 'menu') toast(mode === 'fp' ? '🎥 מבט מבפנים' : '🎥 מבט מבחוץ', 1.2);
 }
 function setFP(on) {
   if (game.fpOn === on) return;
@@ -7334,7 +7392,7 @@ function aimView(cam, pl) {
 function camStep(dt, camera, player, game, camLook, main) {
   const sp = Math.abs(player.speed);
   if (dt > 0) { game.acc += ((player.speed - game.prevSp) / dt - game.acc) * Math.min(1, dt * 4); game.prevSp = player.speed; }
-  const fp = main && game.state !== 'menu' && game.cam === 'fp' && !game.env.sky && player.crashed <= 0 && !player2.p2;   // במסך מפוצל – מבט מאחור לשניכם
+  const fp = main && game.state !== 'menu' && game.cam === 'fp' && player.crashed <= 0 && !player2.p2;   // במסך מפוצל – מבט מאחור לשניכם
   if (main) setFP(fp);
   if (game.state === 'menu') {
     game.menuT += dt * 0.15;
